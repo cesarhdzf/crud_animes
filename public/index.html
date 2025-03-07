@@ -15,6 +15,23 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
         h2, h3 { color: #1690b5; text-align: center; }
+        .list-group-item {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .btn-container {
+            display: flex;
+            justify-content: flex-end;
+            width: 100%;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -114,12 +131,15 @@
             listaAnimes.innerHTML = '';
             animes.forEach(anime => {
                 listaAnimes.innerHTML += `<li class="list-group-item">
-                    ${anime.titulo} (${anime.estado}) - ${anime.plataforma}
-                    <br>Género: ${anime.genero}, Personaje: ${anime.personaje_favorito}
-                    <br>Soundtrack: ${anime.soundtrack}, Animación: ${anime.calidad_animacion}, Calificación: ${anime.calificacion}
-                    <br>
-                    <button class="btn btn-danger btn-sm float-end" onclick="eliminarAnime(${anime.id})">Eliminar</button>
-                    <button class="btn btn-warning btn-sm float-end mx-2" onclick="editarAnime(${anime.id})">Editar</button>
+                    <div>
+                        ${anime.titulo} (${anime.estado}) - ${anime.plataforma}
+                        <br>Género: ${anime.genero}, Personaje: ${anime.personaje_favorito}
+                        <br>Soundtrack: ${anime.soundtrack}, Animación: ${anime.calidad_animacion}, Calificación: ${anime.calificacion}
+                    </div>
+                    <div class="btn-container">
+                        <button class="btn btn-warning btn-sm mx-2" onclick="editarAnime(${anime.id})">Editar</button>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarAnime(${anime.id})">Eliminar</button>
+                    </div>
                 </li>`;
             });
             listaAnimes.style.display = "block";
