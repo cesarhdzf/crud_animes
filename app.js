@@ -8,66 +8,73 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-const con = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "n0m3l0",
-    database: "anime_listas"
+// Conexión a MySQL usando variables de entorno
+const connection = mysql.createConnection({
+    host: process.env.DB_HOST, 
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT || 3306
 });
 
-con.connect(err => {
-    if (err) return console.error("Error al conectar con MySQL:", err);
-    console.log("Conectado a MySQL");
+// Conectar a la base de datos
+connection.connect(error => {
+    if (error) {
+        console.error("Error al conectar con MySQL:", error);
+        return;
+    }
+    console.log("Conectado a MySQL en la nube correctamente.");
 });
 
-// Validación Anti-XSS
+// 🔹 Validación Anti-XSS
 const validarEntrada = texto => texto.replace(/<[^>]*>?/gm, "");
 
-// Agregar Anime
+// 🔹 Agregar Anime
 app.post("/agregarAnime", (req, res) => {
     let { titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
 
-    [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion] =
-        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion].map(validarEntrada);
+    [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
+        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
 
     const sql = `INSERT INTO animes (titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
     
-    con.query(sql, [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion], err => {
+    connection.query(sql, [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion], err => {
         if (err) return res.status(500).send("Error en base de datos");
         res.sendStatus(200);
     });
 });
 
-// Obtener Animes
+// 🔹 Obtener Animes
 app.get('/obtenerAnimes', (req, res) => {
-    con.query("SELECT * FROM animes", (err, resultados) => {
+    connection.query("SELECT * FROM animes", (err, resultados) => {
         if (err) return res.status(500).send("Error al obtener animes");
         res.json(resultados);
     });
 });
 
-// Eliminar Anime
+// 🔹 Eliminar Anime
 app.post('/eliminarAnime', (req, res) => {
     const id = req.body.id;
-    con.query("DELETE FROM animes WHERE id = ?", [id], err => {
+    connection.query("DELETE FROM animes WHERE id = ?", [id], err => {
         if (err) return res.status(500).send("Error al eliminar");
         res.sendStatus(200);
     });
 });
 
-// Editar Anime
+// 🔹 Editar Anime
 app.post('/editarAnime', (req, res) => {
     let { id, titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
 
-    [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion] =
-        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion].map(validarEntrada);
+    [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
+        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
 
     const sql = `UPDATE animes SET titulo=?, estado=?, plataforma=?, genero=?, personaje_favorito=?, soundtrack=?, calidad_animacion=?, calificacion=? WHERE id=?`;
 
-    con.query(sql, [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion, id], err => {
+    connection.query(sql, [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion, id], err => {
         if (err) return res.status(500).send("Error al editar anime");
         res.sendStatus(200);
     });
 });
 
+// Iniciar el servidor
 app.listen(5000, () => console.log("Servidor corriendo en puerto 5000"));
