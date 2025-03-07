@@ -23,6 +23,10 @@ app.post("/agregarAnime", async (req, res) => {
         let { titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
         [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
             [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
+        
+        if (calificacion < 0 || calificacion > 10) {
+            return res.status(400).send("La calificación debe estar entre 0 y 10.");
+        }
 
         await pool.query(
             `INSERT INTO animes (titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
@@ -62,6 +66,10 @@ app.post("/editarAnime", async (req, res) => {
         let { id, titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
         [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
             [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
+        
+        if (calificacion < 0 || calificacion > 10) {
+            return res.status(400).send("La calificación debe estar entre 0 y 10.");
+        }
 
         await pool.query(
             `UPDATE animes SET titulo=$1, estado=$2, plataforma=$3, genero=$4, personaje_favorito=$5, soundtrack=$6, calidad_animacion=$7, calificacion=$8 WHERE id=$9`,
