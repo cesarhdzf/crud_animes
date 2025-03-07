@@ -159,12 +159,22 @@
     }
     
     function editarAnime(id){
-        let nuevoTitulo = prompt("Nuevo título del anime:");
-        if (!nuevoTitulo) return;
+        const campos = ['titulo','estado','plataforma','genero','personaje_favorito','soundtrack','calidad_animacion','calificacion'];
+        let animeEditado = { id };
+    
+        for (let campo of campos) {
+            let valor = prompt(`Nuevo valor para ${campo}:`);
+            if (tieneEtiquetas(valor)) {
+                alert('No se permiten etiquetas HTML');
+                return;
+            }
+            animeEditado[campo] = valor;
+        }
+    
         fetch('/editarAnime', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({ id, titulo: nuevoTitulo })
+            method:'POST', 
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify(animeEditado)
         })
         .then(() => { alert("Anime editado"); mostrarAnimes(); });
     }
