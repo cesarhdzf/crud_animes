@@ -1,12 +1,4 @@
 {
-  "dependencies": {
-    "body-parser": "^1.20.3",
-    "express": "^4.21.2",
-    "mysql2": "^3.13.0"
-  }
-}
-
-{
   "name": "crud_animes",
   "version": "1.0.0",
   "main": "app.js",
