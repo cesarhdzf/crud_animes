@@ -130,7 +130,9 @@
         .then(animes => {
             listaAnimes.innerHTML = '';
             animes.forEach(anime => {
-                listaAnimes.innerHTML += `<li class="list-group-item">
+                let li = document.createElement("li");
+                li.classList.add("list-group-item");
+                li.innerHTML = `
                     <div>
                         ${anime.titulo} (${anime.estado}) - ${anime.plataforma}
                         <br>Género: ${anime.genero}, Personaje: ${anime.personaje_favorito}
@@ -140,10 +142,31 @@
                         <button class="btn btn-warning btn-sm mx-2" onclick="editarAnime(${anime.id})">Editar</button>
                         <button class="btn btn-danger btn-sm" onclick="eliminarAnime(${anime.id})">Eliminar</button>
                     </div>
-                </li>`;
+                `;
+                listaAnimes.appendChild(li);
             });
             listaAnimes.style.display = "block";
         });
+    }
+    
+    function eliminarAnime(id){
+        fetch('/eliminarAnime', { 
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({id})
+        })
+        .then(() => { alert("Anime eliminado"); mostrarAnimes(); });
+    }
+    
+    function editarAnime(id){
+        let nuevoTitulo = prompt("Nuevo título del anime:");
+        if (!nuevoTitulo) return;
+        fetch('/editarAnime', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({ id, titulo: nuevoTitulo })
+        })
+        .then(() => { alert("Anime editado"); mostrarAnimes(); });
     }
     
     function ocultarAnimes(){
