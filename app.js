@@ -1,6 +1,7 @@
-// app.js (BACKEND)
+// app.js (BACKEND para Render con PostgreSQL)
+require("dotenv").config();
 const express = require("express");
-const mysql = require("mysql2");
+const { Pool } = require("pg");
 const bodyParser = require("body-parser");
 
 const app = express();
@@ -8,73 +9,70 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-// Conexión a MySQL usando variables de entorno
-const connection = mysql.createConnection({
-    host: process.env.DB_HOST, 
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT || 3306
+// Configuración de conexión a PostgreSQL en Neon.tech
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false } // Necesario para Neon
 });
 
-// Conectar a la base de datos
-connection.connect(error => {
-    if (error) {
-        console.error("Error al conectar con MySQL:", error);
-        return;
-    }
-    console.log("Conectado a MySQL en la nube correctamente.");
-});
-
-// 🔹 Validación Anti-XSS
 const validarEntrada = texto => texto.replace(/<[^>]*>?/gm, "");
 
-// 🔹 Agregar Anime
-app.post("/agregarAnime", (req, res) => {
-    let { titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
+// Agregar Anime
+app.post("/agregarAnime", async (req, res) => {
+    try {
+        let { titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
+        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
+            [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
 
-    [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
-        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
-
-    const sql = `INSERT INTO animes (titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-    
-    connection.query(sql, [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion], err => {
-        if (err) return res.status(500).send("Error en base de datos");
+        await pool.query(
+            `INSERT INTO animes (titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion]
+        );
         res.sendStatus(200);
-    });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send("Error en base de datos");
+    }
 });
 
-// 🔹 Obtener Animes
-app.get('/obtenerAnimes', (req, res) => {
-    connection.query("SELECT * FROM animes", (err, resultados) => {
-        if (err) return res.status(500).send("Error al obtener animes");
-        res.json(resultados);
-    });
+// Obtener Animes
+app.get("/obtenerAnimes", async (req, res) => {
+    try {
+        const { rows } = await pool.query("SELECT * FROM animes");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).send("Error al obtener animes");
+    }
 });
 
-// 🔹 Eliminar Anime
-app.post('/eliminarAnime', (req, res) => {
-    const id = req.body.id;
-    connection.query("DELETE FROM animes WHERE id = ?", [id], err => {
-        if (err) return res.status(500).send("Error al eliminar");
+// Eliminar Anime
+app.post("/eliminarAnime", async (req, res) => {
+    try {
+        const { id } = req.body;
+        await pool.query("DELETE FROM animes WHERE id = $1", [id]);
         res.sendStatus(200);
-    });
+    } catch (err) {
+        res.status(500).send("Error al eliminar");
+    }
 });
 
-// 🔹 Editar Anime
-app.post('/editarAnime', (req, res) => {
-    let { id, titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
+// Editar Anime
+app.post("/editarAnime", async (req, res) => {
+    try {
+        let { id, titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
+        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
+            [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
 
-    [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion] =
-        [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion].map(validarEntrada);
-
-    const sql = `UPDATE animes SET titulo=?, estado=?, plataforma=?, genero=?, personaje_favorito=?, soundtrack=?, calidad_animacion=?, calificacion=? WHERE id=?`;
-
-    connection.query(sql, [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion, id], err => {
-        if (err) return res.status(500).send("Error al editar anime");
+        await pool.query(
+            `UPDATE animes SET titulo=$1, estado=$2, plataforma=$3, genero=$4, personaje_favorito=$5, soundtrack=$6, calidad_animacion=$7, calificacion=$8 WHERE id=$9`,
+            [titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion, id]
+        );
         res.sendStatus(200);
-    });
+    } catch (err) {
+        res.status(500).send("Error al editar anime");
+    }
 });
 
-// Iniciar el servidor
-app.listen(5000, () => console.log("Servidor corriendo en puerto 5000"));
+// Iniciar el servidor en Render
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Servidor corriendo en puerto ${PORT}`));
