@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>CRUD Animes</title>
+    <title>CRUD Animes + Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f2b65c; color: #333; }
@@ -35,6 +35,17 @@
     </style>
 </head>
 <body>
+
+<div class="container mb-4">
+    <h3>Iniciar Sesión</h3>
+    <form id="formLogin" onsubmit="return false;">
+        <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2">
+        <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2">
+        <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+    </form>
+    <button onclick="cerrarSesion()" class="btn btn-danger w-100 mt-2">Cerrar Sesión</button>
+</div>
+
 <div class="container">
     <h2>Registrar Anime</h2>
     <form id="formAnime" onsubmit="return false;">
@@ -53,7 +64,6 @@
         </select>
         <input type="text" name="genero" placeholder="Género" required class="form-control mb-2">
         <input type="text" name="personaje_favorito" placeholder="Personaje Favorito" required class="form-control mb-2">
-
         <label>Soundtrack:</label>
         <select name="soundtrack" required class="form-select mb-2">
             <option>Excelente</option>
@@ -61,7 +71,6 @@
             <option>No tan bueno</option>
             <option>Meh</option>
         </select>
-
         <label>Calidad de Animación:</label>
         <select name="calidad_animacion" required class="form-select mb-2">
             <option>Excelente</option>
@@ -69,45 +78,80 @@
             <option>No tan bueno</option>
             <option>Meh</option>
         </select>
-
         <input type="number" step="0.1" name="calificacion" placeholder="Calificación Final (0-10)" required class="form-control mb-3" min="0" max="10">
         <button type="submit" class="btn btn-success w-100">Agregar Anime</button>
     </form>
 
     <button onclick="mostrarAnimes()" class="btn btn-primary w-100 mt-3">Mostrar Animes</button>
     <button onclick="ocultarAnimes()" class="btn btn-secondary w-100 mt-2">Ocultar Animes</button>
-
     <ul id="listaAnimes" class="list-group mt-3" style="display: none;"></ul>
 </div>
 
 <script>
+    const formLogin = document.getElementById("formLogin");
     const formAnime = document.getElementById("formAnime");
     const listaAnimes = document.getElementById("listaAnimes");
-    
+
     function tieneEtiquetas(texto) {
         return /<[^>]*>?/gm.test(texto);
     }
-    
+
+    // LOGIN
+    formLogin.addEventListener("submit", e => {
+        e.preventDefault();
+        const datos = Object.fromEntries(new FormData(formLogin));
+
+        for (let key in datos) {
+            if (tieneEtiquetas(datos[key])) {
+                alert("No se permiten etiquetas HTML.");
+                return;
+            }
+        }
+
+        fetch("/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Credenciales incorrectas");
+            return res.json();
+        })
+        .then(data => {
+            localStorage.setItem("token", data.token);
+            alert("Inicio de sesión exitoso");
+        })
+        .catch(err => alert("Error: " + err.message));
+    });
+
+    function cerrarSesion() {
+        localStorage.removeItem("token");
+        alert("Sesión cerrada.");
+    }
+
+    // AGREGAR ANIME
     formAnime.addEventListener("submit", e => {
         e.preventDefault();
-    
+
         const formData = Object.fromEntries(new FormData(formAnime));
-        
         if (parseFloat(formData.calificacion) < 0 || parseFloat(formData.calificacion) > 10) {
             alert("La calificación debe estar entre 0 y 10.");
             return;
         }
-    
+
         for (let key in formData) {
             if (tieneEtiquetas(formData[key])) {
                 alert('No se permiten etiquetas HTML');
                 return;
             }
         }
-    
+
         fetch('/agregarAnime', {
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: {
+                'Content-Type':'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem("token")
+            },
             body: JSON.stringify(formData)
         })
         .then(response => {
@@ -123,7 +167,8 @@
             alert("Error de red o del servidor: " + err);
         });
     });
-    
+
+    // MOSTRAR ANIMES
     function mostrarAnimes(){
         fetch('/obtenerAnimes')
         .then(res => res.json())
@@ -148,20 +193,27 @@
             listaAnimes.style.display = "block";
         });
     }
-    
+
+    function ocultarAnimes(){
+        listaAnimes.style.display = "none";
+    }
+
     function eliminarAnime(id){
         fetch('/eliminarAnime', { 
             method: 'POST',
-            headers: {'Content-Type':'application/json'},
+            headers: {
+                'Content-Type':'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem("token")
+            },
             body: JSON.stringify({id})
         })
         .then(() => { alert("Anime eliminado"); mostrarAnimes(); });
     }
-    
+
     function editarAnime(id){
         const campos = ['titulo','estado','plataforma','genero','personaje_favorito','soundtrack','calidad_animacion','calificacion'];
         let animeEditado = { id };
-    
+
         for (let campo of campos) {
             let valor = prompt(`Nuevo valor para ${campo}:`);
             if (tieneEtiquetas(valor)) {
@@ -170,18 +222,17 @@
             }
             animeEditado[campo] = valor;
         }
-    
+
         fetch('/editarAnime', {
             method:'POST', 
-            headers:{'Content-Type':'application/json'},
+            headers:{
+                'Content-Type':'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem("token")
+            },
             body: JSON.stringify(animeEditado)
         })
         .then(() => { alert("Anime editado"); mostrarAnimes(); });
     }
-    
-    function ocultarAnimes(){
-        listaAnimes.style.display = "none";
-    }
-</script>    
+</script>
 </body>
 </html>
