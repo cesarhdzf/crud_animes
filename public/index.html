@@ -2,10 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>CRUD Animes + Login</title>
+    <title>CRUD Animes + Registro y Login</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* Se oculta la sección de animes hasta que se inicie sesión */
+        /* Se ocultan la sección de animes hasta que se inicie sesión */
         #animeContainer {
             display: none;
         }
@@ -40,6 +40,16 @@
 </head>
 <body>
 
+<!-- Sección de registro -->
+<div class="container mb-4">
+    <h3>Registrarse</h3>
+    <form id="formRegistro" onsubmit="return false;">
+        <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2">
+        <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2">
+        <button type="submit" class="btn btn-success w-100">Registrarse</button>
+    </form>
+</div>
+
 <!-- Sección de login -->
 <div class="container mb-4">
     <h3>Iniciar Sesión</h3>
@@ -51,7 +61,7 @@
     <button onclick="cerrarSesion()" class="btn btn-danger w-100 mt-2">Cerrar Sesión</button>
 </div>
 
-<!-- Sección de animes, oculta hasta iniciar sesión -->
+<!-- Sección de animes (solo visible al iniciar sesión) -->
 <div id="animeContainer" class="container">
     <h2>Registrar Anime</h2>
     <form id="formAnime" onsubmit="return false;">
@@ -94,7 +104,7 @@
 </div>
 
 <script>
-    // Al cargar la página, se verifica si existe token
+    // Al cargar la página, verifica si existe token para mostrar la sección de animes.
     document.addEventListener("DOMContentLoaded", function() {
         verificarLogin();
     });
@@ -112,11 +122,34 @@
         return /<[^>]*>?/gm.test(texto);
     }
 
-    const formLogin = document.getElementById("formLogin");
-    const formAnime = document.getElementById("formAnime");
-    const listaAnimes = document.getElementById("listaAnimes");
+    // Registro de usuario
+    const formRegistro = document.getElementById("formRegistro");
+    formRegistro.addEventListener("submit", e => {
+        e.preventDefault();
+        const datos = Object.fromEntries(new FormData(formRegistro));
 
-    // LOGIN
+        for (let key in datos) {
+            if (tieneEtiquetas(datos[key])) {
+                alert("No se permiten etiquetas HTML.");
+                return;
+            }
+        }
+
+        fetch("/registro", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(datos)
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Error al registrarse");
+            alert("Registro exitoso. Ahora puedes iniciar sesión.");
+            formRegistro.reset();
+        })
+        .catch(err => alert("Error: " + err.message));
+    });
+
+    // Login de usuario
+    const formLogin = document.getElementById("formLogin");
     formLogin.addEventListener("submit", e => {
         e.preventDefault();
         const datos = Object.fromEntries(new FormData(formLogin));
@@ -152,7 +185,8 @@
         verificarLogin();
     }
 
-    // AGREGAR ANIME
+    // Agregar Anime
+    const formAnime = document.getElementById("formAnime");
     formAnime.addEventListener("submit", e => {
         e.preventDefault();
         const formData = Object.fromEntries(new FormData(formAnime));
@@ -172,7 +206,7 @@
         fetch('/agregarAnime', {
             method: 'POST',
             headers: {
-                'Content-Type':'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem("token")
             },
             body: JSON.stringify(formData)
@@ -191,7 +225,7 @@
         });
     });
 
-    // MOSTRAR ANIMES
+    // Mostrar animes
     function mostrarAnimes(){
         fetch('/obtenerAnimes', {
             headers: {
@@ -229,7 +263,7 @@
         fetch('/eliminarAnime', { 
             method: 'POST',
             headers: {
-                'Content-Type':'application/json',
+                'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + localStorage.getItem("token")
             },
             body: JSON.stringify({id})
