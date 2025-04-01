@@ -3,34 +3,46 @@ document.addEventListener("DOMContentLoaded", function() {
   verificarLogin();
 });
 
-// Función que verifica si hay token y muestra la sección de animes
+// Función que verifica si hay token y, según ello, oculta o muestra las secciones correspondientes
 function verificarLogin() {
   const token = localStorage.getItem("token");
   const animeContainer = document.getElementById("animeContainer");
+  const loginContainer = document.getElementById("loginContainer");
+  const registerContainer = document.getElementById("registerContainer");
+  const logoutContainer = document.getElementById("logoutContainer");
+  
   if (token) {
+    // Si hay token, se muestran las secciones para usuarios autenticados
     animeContainer.style.display = "block";
+    logoutContainer.style.display = "block";
+    // Se ocultan las opciones de registro e inicio de sesión
+    loginContainer.style.display = "none";
+    registerContainer.style.display = "none";
   } else {
     animeContainer.style.display = "none";
+    logoutContainer.style.display = "none";
+    loginContainer.style.display = "block";
+    registerContainer.style.display = "block";
   }
-  // Verifica también el rol admin para mostrar el panel de administración
+  // Verificar si el usuario es administrador
   verificarAdmin();
 }
 
-// Función para decodificar el token y mostrar u ocultar el panel de administración
+// Función para verificar si el usuario es admin, decodificando el token
 function verificarAdmin() {
   const token = localStorage.getItem("token");
   const adminContainer = document.getElementById("adminContainer");
   if (token) {
     try {
       const decoded = jwt_decode(token);
-      console.log("Token decodificado:", decoded);
+      console.log("Token decodificado (admin):", decoded);
       if (decoded.role && decoded.role === "admin") {
         adminContainer.style.display = "block";
       } else {
         adminContainer.style.display = "none";
       }
     } catch (e) {
-      console.error("Error decodificando el token:", e);
+      console.error("Error al decodificar token:", e);
       adminContainer.style.display = "none";
     }
   } else {
@@ -50,14 +62,14 @@ const formRegistro = document.getElementById("formRegistro");
 formRegistro.addEventListener("submit", e => {
   e.preventDefault();
   const datos = Object.fromEntries(new FormData(formRegistro));
-
+  
   for (let key in datos) {
     if (tieneEtiquetas(datos[key])) {
       alert("No se permiten etiquetas HTML.");
       return;
     }
   }
-
+  
   fetch("/registro", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -78,14 +90,14 @@ const formLogin = document.getElementById("formLogin");
 formLogin.addEventListener("submit", e => {
   e.preventDefault();
   const datos = Object.fromEntries(new FormData(formLogin));
-
+  
   for (let key in datos) {
     if (tieneEtiquetas(datos[key])) {
       alert("No se permiten etiquetas HTML.");
       return;
     }
   }
-
+  
   fetch("/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -120,19 +132,19 @@ const formAnime = document.getElementById("formAnime");
 formAnime.addEventListener("submit", e => {
   e.preventDefault();
   const formData = Object.fromEntries(new FormData(formAnime));
-
+  
   if (parseFloat(formData.calificacion) < 0 || parseFloat(formData.calificacion) > 10) {
     alert("La calificación debe estar entre 0 y 10.");
     return;
   }
-
+  
   for (let key in formData) {
     if (tieneEtiquetas(formData[key])) {
       alert("No se permiten etiquetas HTML");
       return;
     }
   }
-
+  
   fetch("/agregarAnime", {
     method: "POST",
     headers: {
@@ -142,7 +154,7 @@ formAnime.addEventListener("submit", e => {
     body: JSON.stringify(formData)
   })
   .then(response => {
-    if (response.ok) {
+    if(response.ok){
       alert("Anime agregado correctamente");
       formAnime.reset();
       mostrarAnimes();
@@ -248,30 +260,9 @@ function editarAnime(id) {
 // Lógica de Administración
 // ============================================
 
-// Verificar si el usuario es administrador y mostrar el panel de admin
-function verificarAdmin() {
-  const token = localStorage.getItem("token");
-  const adminContainer = document.getElementById("adminContainer");
-  if (token) {
-    try {
-      const decoded = jwt_decode(token);
-      console.log("Token decodificado (admin):", decoded);
-      if (decoded.role && decoded.role === "admin") {
-        adminContainer.style.display = "block";
-      } else {
-        adminContainer.style.display = "none";
-      }
-    } catch (e) {
-      console.error("Error al decodificar token:", e);
-      adminContainer.style.display = "none";
-    }
-  } else {
-    adminContainer.style.display = "none";
-  }
-}
-
-// Manejo del botón para ver usuarios en el panel de administración
+// Manejar el botón para ver usuarios
 const btnVerUsuarios = document.getElementById("btnVerUsuarios");
+const btnOcultarUsuarios = document.getElementById("btnOcultarUsuarios");
 const listaUsuarios = document.getElementById("listaUsuarios");
 
 if (btnVerUsuarios) {
@@ -301,6 +292,12 @@ if (btnVerUsuarios) {
   });
 }
 
+if (btnOcultarUsuarios) {
+  btnOcultarUsuarios.addEventListener("click", () => {
+    listaUsuarios.style.display = "none";
+  });
+}
+
 // Función para eliminar un usuario (solo admin)
 function eliminarUsuario(id) {
   if (confirm("¿Seguro que deseas eliminar este usuario?")) {
@@ -314,7 +311,8 @@ function eliminarUsuario(id) {
     })
     .then(() => {
       alert("Usuario eliminado");
-      btnVerUsuarios.click(); // Actualiza la lista de usuarios
+      // Actualiza la lista de usuarios
+      if (btnVerUsuarios) btnVerUsuarios.click();
     })
     .catch(err => alert("Error al eliminar usuario: " + err));
   }
