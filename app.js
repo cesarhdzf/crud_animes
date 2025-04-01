@@ -33,6 +33,15 @@ function autenticarToken(req, res, next) {
   });
 }
 
+// Middleware para acceso de administradores
+function esAdmin(req, res, next) {
+  if (req.user && req.user.role === "admin") {
+    next();
+  } else {
+    res.status(403).send("No autorizado: acceso solo para administradores");
+  }
+}
+
 // ===================================================
 // Registro de usuario
 // ===================================================
@@ -58,6 +67,7 @@ app.post(
     try {
       // Cifrado de la contraseña con hash
       const hash = await bcrypt.hash(password, 10);
+      // NOTA: El rol se asigna por defecto en la base de datos (role DEFAULT 'user')
       await pool.query(
         "INSERT INTO usuarios (username, password_hash) VALUES ($1, $2)",
         [username, hash]
@@ -109,8 +119,12 @@ app.post(
       if (!valido) {
         return res.status(401).send("Contraseña incorrecta.");
       }
-      // Genera token JWT con id y username
-      const token = jwt.sign({ id: user.id, username: user.username }, SECRET, { expiresIn: "2h" });
+      // Genera token JWT con id, username y role
+      const token = jwt.sign(
+        { id: user.id, username: user.username, role: user.role },
+        SECRET,
+        { expiresIn: "2h" }
+      );
       res.json({ token });
     } catch (err) {
       console.error(err);
@@ -228,6 +242,34 @@ app.post(
     }
   }
 );
+
+// ===================================================
+// Endpoints de Administración (Perfil Admin)
+// ===================================================
+
+// Obtener la lista de todos los usuarios (sólo administradores)
+app.get("/admin/usuarios", autenticarToken, esAdmin, async (req, res) => {
+  try {
+    const result = await pool.query("SELECT id, username, created_at, role FROM usuarios");
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error al obtener usuarios");
+  }
+});
+
+// Eliminar un usuario (sólo administradores)
+app.post("/admin/eliminarUsuario", autenticarToken, esAdmin, async (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).send("Se requiere el ID del usuario");
+  try {
+    await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error al eliminar usuario");
+  }
+});
 
 // ===================================================
 // Iniciar el servidor
