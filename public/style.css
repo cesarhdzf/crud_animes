@@ -1,0 +1,107 @@
+/* Importa la fuente Poppins desde Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+
+/* Reset y box-sizing */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body con fondo negro, texto claro, fuente Poppins */
+body {
+  background-color: #000 !important;
+  color: #e0e0e0 !important;
+  font-family: 'Poppins', sans-serif;
+  line-height: 1.6;
+}
+
+/* Ocultar la sección de animes por defecto */
+#animeContainer {
+  display: none; /* Se mostrará vía script.js si hay token */
+}
+
+/* Contenedores con fondo gris oscuro y borde pastel */
+.container {
+  max-width: 650px;
+  margin: 30px auto;
+  background-color: #1a1a1a; /* Gris muy oscuro */
+  padding: 20px;
+  border-radius: 10px;
+  border: 2px solid;
+  border-image: linear-gradient(45deg, #ffb6c1, #add8e6, #98fb98, #ffdab9) 1;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.1);
+  margin-bottom: 20px;
+}
+
+/* Títulos con color pastel */
+h2, h3 {
+  color: #ffb6c1 !important; /* Rosa pastel */
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+/* Inputs y selects con estilo oscuro */
+input[type="text"],
+input[type="password"],
+input[type="number"],
+select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #444 !important;
+  border-radius: 5px;
+  background-color: #333 !important;
+  color: #e0e0e0 !important;
+}
+
+/* Botones con colores pastel */
+button {
+  padding: 10px !important;
+  border: none !important;
+  border-radius: 5px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+}
+
+/* Sobrescribir colores de Bootstrap */
+.btn-primary {
+  background-color: #add8e6 !important; /* Azul pastel */
+  color: #000 !important;
+}
+
+.btn-success {
+  background-color: #98fb98 !important; /* Verde pastel */
+  color: #000 !important;
+}
+
+.btn-danger {
+  background-color: #ff6f61 !important; /* Rojo pastel */
+  color: #000 !important;
+}
+
+.btn-secondary {
+  background-color: #ffdab9 !important; /* Melocotón pastel */
+  color: #000 !important;
+}
+
+/* Listado de animes */
+.list-group-item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  background-color: #222;
+  border: 1px solid #444;
+  box-shadow: 0px 2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.btn-container {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: 10px;
+}

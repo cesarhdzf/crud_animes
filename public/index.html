@@ -1,305 +1,81 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>CRUD Animes + Registro y Login</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* Se ocultan la sección de animes hasta que se inicie sesión */
-        #animeContainer {
-            display: none;
-        }
-        body { background-color: #f2b65c; color: #333; }
-        .container {
-            max-width: 650px;
-            margin: 30px auto;
-            background-color: #efecb5;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-        h2, h3 { color: #1690b5; text-align: center; }
-        .list-group-item {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            background: #fff;
-            box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .btn-container {
-            display: flex;
-            justify-content: flex-end;
-            width: 100%;
-            margin-top: 10px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <title>CRUD Animes + Registro y Login</title>
+  <!-- Bootstrap (importado primero) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Tu CSS (importado después para sobreescribir estilos) -->
+  <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 <body>
 
-<!-- Sección de registro -->
-<div class="container mb-4">
+  <!-- Sección de registro -->
+  <div class="container mb-4">
     <h3>Registrarse</h3>
     <form id="formRegistro" onsubmit="return false;">
-        <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2">
-        <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2">
-        <button type="submit" class="btn btn-success w-100">Registrarse</button>
+      <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2" minlength="3" maxlength="50">
+      <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2" minlength="6">
+      <button type="submit" class="btn btn-success w-100">Registrarse</button>
     </form>
-</div>
+  </div>
 
-<!-- Sección de login -->
-<div class="container mb-4">
+  <!-- Sección de login -->
+  <div class="container mb-4">
     <h3>Iniciar Sesión</h3>
     <form id="formLogin" onsubmit="return false;">
-        <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2">
-        <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2">
-        <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+      <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2">
+      <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2">
+      <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
     </form>
-    <button onclick="cerrarSesion()" class="btn btn-danger w-100 mt-2">Cerrar Sesión</button>
-</div>
+    <button id="btnCerrarSesion" class="btn btn-danger w-100 mt-2">Cerrar Sesión</button>
+  </div>
 
-<!-- Sección de animes (solo visible al iniciar sesión) -->
-<div id="animeContainer" class="container">
+  <!-- Sección de animes (por defecto oculta en CSS) -->
+  <div id="animeContainer" class="container">
     <h2>Registrar Anime</h2>
     <form id="formAnime" onsubmit="return false;">
-        <input type="text" name="titulo" placeholder="Título" required class="form-control mb-2">
-        <select name="estado" required class="form-select mb-2">
-            <option value="">Estado</option>
-            <option>Visto</option>
-            <option>No Visto</option>
-            <option>Por Ver</option>
-        </select>
-        <select name="plataforma" required class="form-select mb-2">
-            <option>Netflix</option>
-            <option>Crunchyroll</option>
-            <option>Prime Video</option>
-            <option>Otro</option>
-        </select>
-        <input type="text" name="genero" placeholder="Género" required class="form-control mb-2">
-        <input type="text" name="personaje_favorito" placeholder="Personaje Favorito" required class="form-control mb-2">
-        <label>Soundtrack:</label>
-        <select name="soundtrack" required class="form-select mb-2">
-            <option>Excelente</option>
-            <option>Buenísimo</option>
-            <option>No tan bueno</option>
-            <option>Meh</option>
-        </select>
-        <label>Calidad de Animación:</label>
-        <select name="calidad_animacion" required class="form-select mb-2">
-            <option>Excelente</option>
-            <option>Buenísimo</option>
-            <option>No tan bueno</option>
-            <option>Meh</option>
-        </select>
-        <input type="number" step="0.1" name="calificacion" placeholder="Calificación Final (0-10)" required class="form-control mb-3" min="0" max="10">
-        <button type="submit" class="btn btn-success w-100">Agregar Anime</button>
+      <input type="text" name="titulo" placeholder="Título" required class="form-control mb-2">
+      <select name="estado" required class="form-select mb-2">
+        <option value="">Estado</option>
+        <option>Visto</option>
+        <option>No Visto</option>
+        <option>Por Ver</option>
+      </select>
+      <select name="plataforma" required class="form-select mb-2">
+        <option>Netflix</option>
+        <option>Crunchyroll</option>
+        <option>Prime Video</option>
+        <option>Otro</option>
+      </select>
+      <input type="text" name="genero" placeholder="Género" required class="form-control mb-2">
+      <input type="text" name="personaje_favorito" placeholder="Personaje Favorito" required class="form-control mb-2">
+      <label>Soundtrack:</label>
+      <select name="soundtrack" required class="form-select mb-2">
+        <option>Excelente</option>
+        <option>Buenísimo</option>
+        <option>No tan bueno</option>
+        <option>Meh</option>
+      </select>
+      <label>Calidad de Animación:</label>
+      <select name="calidad_animacion" required class="form-select mb-2">
+        <option>Excelente</option>
+        <option>Buenísimo</option>
+        <option>No tan bueno</option>
+        <option>Meh</option>
+      </select>
+      <input type="number" step="0.1" name="calificacion" placeholder="Calificación Final (0-10)" required class="form-control mb-3" min="0" max="10">
+      <button type="submit" class="btn btn-success w-100">Agregar Anime</button>
     </form>
 
-    <button onclick="mostrarAnimes()" class="btn btn-primary w-100 mt-3">Mostrar Animes</button>
-    <button onclick="ocultarAnimes()" class="btn btn-secondary w-100 mt-2">Ocultar Animes</button>
+    <button id="btnMostrar" class="btn btn-primary w-100 mt-3">Mostrar Animes</button>
+    <button id="btnOcultar" class="btn btn-secondary w-100 mt-2">Ocultar Animes</button>
     <ul id="listaAnimes" class="list-group mt-3" style="display: none;"></ul>
-</div>
+  </div>
 
-<script>
-    // Al cargar la página, verifica si existe token para mostrar la sección de animes.
-    document.addEventListener("DOMContentLoaded", function() {
-        verificarLogin();
-    });
-
-    function verificarLogin() {
-        const token = localStorage.getItem("token");
-        if (token) {
-            document.getElementById("animeContainer").style.display = "block";
-        } else {
-            document.getElementById("animeContainer").style.display = "none";
-        }
-    }
-
-    function tieneEtiquetas(texto) {
-        return /<[^>]*>?/gm.test(texto);
-    }
-
-    // Registro de usuario
-    const formRegistro = document.getElementById("formRegistro");
-    formRegistro.addEventListener("submit", e => {
-        e.preventDefault();
-        const datos = Object.fromEntries(new FormData(formRegistro));
-
-        for (let key in datos) {
-            if (tieneEtiquetas(datos[key])) {
-                alert("No se permiten etiquetas HTML.");
-                return;
-            }
-        }
-
-        fetch("/registro", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datos)
-        })
-        .then(res => {
-            if (!res.ok) throw new Error("Error al registrarse");
-            alert("Registro exitoso. Ahora puedes iniciar sesión.");
-            formRegistro.reset();
-        })
-        .catch(err => alert("Error: " + err.message));
-    });
-
-    // Login de usuario
-    const formLogin = document.getElementById("formLogin");
-    formLogin.addEventListener("submit", e => {
-        e.preventDefault();
-        const datos = Object.fromEntries(new FormData(formLogin));
-
-        for (let key in datos) {
-            if (tieneEtiquetas(datos[key])) {
-                alert("No se permiten etiquetas HTML.");
-                return;
-            }
-        }
-
-        fetch("/login", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(datos)
-        })
-        .then(res => {
-            if (!res.ok) throw new Error("Credenciales incorrectas");
-            return res.json();
-        })
-        .then(data => {
-            localStorage.setItem("token", data.token);
-            alert("Inicio de sesión exitoso");
-            verificarLogin(); // Muestra la sección de animes
-        })
-        .catch(err => alert("Error: " + err.message));
-    });
-
-    // Cerrar sesión
-    function cerrarSesion() {
-        localStorage.removeItem("token");
-        alert("Sesión cerrada.");
-        verificarLogin();
-    }
-
-    // Agregar Anime
-    const formAnime = document.getElementById("formAnime");
-    formAnime.addEventListener("submit", e => {
-        e.preventDefault();
-        const formData = Object.fromEntries(new FormData(formAnime));
-        
-        if (parseFloat(formData.calificacion) < 0 || parseFloat(formData.calificacion) > 10) {
-            alert("La calificación debe estar entre 0 y 10.");
-            return;
-        }
-        
-        for (let key in formData) {
-            if (tieneEtiquetas(formData[key])) {
-                alert('No se permiten etiquetas HTML');
-                return;
-            }
-        }
-        
-        fetch('/agregarAnime', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem("token")
-            },
-            body: JSON.stringify(formData)
-        })
-        .then(response => {
-            if(response.ok){
-                alert("Anime agregado correctamente");
-                formAnime.reset();
-                mostrarAnimes();
-            } else {
-                alert("Error al agregar anime");
-            }
-        })
-        .catch(err => {
-            alert("Error de red o del servidor: " + err);
-        });
-    });
-
-    // Mostrar animes
-    function mostrarAnimes(){
-        fetch('/obtenerAnimes', {
-            headers: {
-                'Authorization': 'Bearer ' + localStorage.getItem("token")
-            }
-        })
-        .then(res => res.json())
-        .then(animes => {
-            listaAnimes.innerHTML = '';
-            animes.forEach(anime => {
-                let li = document.createElement("li");
-                li.classList.add("list-group-item");
-                li.innerHTML = `
-                    <div>
-                        ${anime.titulo} (${anime.estado}) - ${anime.plataforma}
-                        <br>Género: ${anime.genero}, Personaje: ${anime.personaje_favorito}
-                        <br>Soundtrack: ${anime.soundtrack}, Animación: ${anime.calidad_animacion}, Calificación: ${anime.calificacion}
-                    </div>
-                    <div class="btn-container">
-                        <button class="btn btn-warning btn-sm mx-2" onclick="editarAnime(${anime.id})">Editar</button>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarAnime(${anime.id})">Eliminar</button>
-                    </div>
-                `;
-                listaAnimes.appendChild(li);
-            });
-            listaAnimes.style.display = "block";
-        });
-    }
-
-    function ocultarAnimes(){
-        listaAnimes.style.display = "none";
-    }
-
-    function eliminarAnime(id){
-        fetch('/eliminarAnime', { 
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem("token")
-            },
-            body: JSON.stringify({id})
-        })
-        .then(() => { 
-            alert("Anime eliminado"); 
-            mostrarAnimes(); 
-        });
-    }
-
-    function editarAnime(id){
-        const campos = ['titulo','estado','plataforma','genero','personaje_favorito','soundtrack','calidad_animacion','calificacion'];
-        let animeEditado = { id };
-
-        for (let campo of campos) {
-            let valor = prompt(`Nuevo valor para ${campo}:`);
-            if (tieneEtiquetas(valor)) {
-                alert('No se permiten etiquetas HTML');
-                return;
-            }
-            animeEditado[campo] = valor;
-        }
-
-        fetch('/editarAnime', {
-            method:'POST', 
-            headers:{
-                'Content-Type':'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem("token")
-            },
-            body: JSON.stringify(animeEditado)
-        })
-        .then(() => { 
-            alert("Anime editado"); 
-            mostrarAnimes(); 
-        });
-    }
-</script>
+  <!-- Script de Bootstrap (opcional, si usas componentes JS de Bootstrap) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Tu script JS -->
+  <script src="script.js"></script>
 </body>
 </html>
