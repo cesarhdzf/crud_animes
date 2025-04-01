@@ -8,7 +8,7 @@
   box-sizing: border-box;
 }
 
-/* Body con fondo negro, texto claro, fuente Poppins */
+/* Fondo negro y texto claro en body */
 body {
   background-color: #000 !important;
   color: #e0e0e0 !important;
@@ -18,14 +18,14 @@ body {
 
 /* Ocultar la sección de animes por defecto */
 #animeContainer {
-  display: none; /* Se mostrará vía script.js si hay token */
+  display: none;
 }
 
 /* Contenedores con fondo gris oscuro y borde pastel */
 .container {
   max-width: 650px;
   margin: 30px auto;
-  background-color: #1a1a1a; /* Gris muy oscuro */
+  background-color: #1a1a1a;
   padding: 20px;
   border-radius: 10px;
   border: 2px solid;
@@ -34,9 +34,9 @@ body {
   margin-bottom: 20px;
 }
 
-/* Títulos con color pastel */
+/* Títulos en color pastel */
 h2, h3 {
-  color: #ffb6c1 !important; /* Rosa pastel */
+  color: #ffb6c1 !important;
   text-align: center;
   margin-bottom: 15px;
 }
@@ -55,7 +55,7 @@ select {
   color: #e0e0e0 !important;
 }
 
-/* Botones con colores pastel */
+/* Botones con estilos pastel */
 button {
   padding: 10px !important;
   border: none !important;
@@ -64,28 +64,25 @@ button {
   cursor: pointer !important;
 }
 
-/* Sobrescribir colores de Bootstrap */
+/* Sobreescribir estilos de Bootstrap para botones */
 .btn-primary {
-  background-color: #add8e6 !important; /* Azul pastel */
+  background-color: #add8e6 !important;
   color: #000 !important;
 }
-
 .btn-success {
-  background-color: #98fb98 !important; /* Verde pastel */
+  background-color: #98fb98 !important;
   color: #000 !important;
 }
-
 .btn-danger {
-  background-color: #ff6f61 !important; /* Rojo pastel */
+  background-color: #ff6f61 !important;
   color: #000 !important;
 }
-
 .btn-secondary {
-  background-color: #ffdab9 !important; /* Melocotón pastel */
+  background-color: #ffdab9 !important;
   color: #000 !important;
 }
 
-/* Listado de animes */
+/* Estilos para la lista de animes */
 .list-group-item {
   display: flex;
   flex-direction: column;

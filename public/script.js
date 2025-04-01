@@ -1,21 +1,11 @@
-// Al cargar la página, verifica si existe token para mostrar la sección de animes
+// Al cargar la página, verifica si hay token para mostrar la sección de animes
 document.addEventListener("DOMContentLoaded", function() {
   verificarLogin();
 });
 
-// Seleccionamos los elementos del DOM
-const formRegistro = document.getElementById("formRegistro");
-const formLogin = document.getElementById("formLogin");
-const formAnime = document.getElementById("formAnime");
-const animeContainer = document.getElementById("animeContainer");
-const btnCerrarSesion = document.getElementById("btnCerrarSesion");
-const btnMostrar = document.getElementById("btnMostrar");
-const btnOcultar = document.getElementById("btnOcultar");
-const listaAnimes = document.getElementById("listaAnimes");
-
-// Función para verificar si hay un token en localStorage
 function verificarLogin() {
   const token = localStorage.getItem("token");
+  const animeContainer = document.getElementById("animeContainer");
   if (token) {
     animeContainer.style.display = "block";
   } else {
@@ -23,25 +13,23 @@ function verificarLogin() {
   }
 }
 
-// Función para detectar etiquetas HTML en el texto
 function tieneEtiquetas(texto) {
   return /<[^>]*>?/gm.test(texto);
 }
 
-// ============================================
 // Registro de usuario
-// ============================================
+const formRegistro = document.getElementById("formRegistro");
 formRegistro.addEventListener("submit", e => {
   e.preventDefault();
   const datos = Object.fromEntries(new FormData(formRegistro));
-
+  
   for (let key in datos) {
     if (tieneEtiquetas(datos[key])) {
       alert("No se permiten etiquetas HTML.");
       return;
     }
   }
-
+  
   fetch("/registro", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -55,20 +43,19 @@ formRegistro.addEventListener("submit", e => {
   .catch(err => alert("Error: " + err.message));
 });
 
-// ============================================
 // Login de usuario
-// ============================================
+const formLogin = document.getElementById("formLogin");
 formLogin.addEventListener("submit", e => {
   e.preventDefault();
   const datos = Object.fromEntries(new FormData(formLogin));
-
+  
   for (let key in datos) {
     if (tieneEtiquetas(datos[key])) {
       alert("No se permiten etiquetas HTML.");
       return;
     }
   }
-
+  
   fetch("/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -87,15 +74,15 @@ formLogin.addEventListener("submit", e => {
 });
 
 // Cerrar sesión
+const btnCerrarSesion = document.getElementById("btnCerrarSesion");
 btnCerrarSesion.addEventListener("click", () => {
   localStorage.removeItem("token");
   alert("Sesión cerrada.");
   verificarLogin();
 });
 
-// ============================================
 // Agregar Anime
-// ============================================
+const formAnime = document.getElementById("formAnime");
 formAnime.addEventListener("submit", e => {
   e.preventDefault();
   const formData = Object.fromEntries(new FormData(formAnime));
@@ -134,9 +121,11 @@ formAnime.addEventListener("submit", e => {
   });
 });
 
-// ============================================
-// Mostrar / Ocultar Animes
-// ============================================
+// Mostrar animes
+const btnMostrar = document.getElementById("btnMostrar");
+const btnOcultar = document.getElementById("btnOcultar");
+const listaAnimes = document.getElementById("listaAnimes");
+
 btnMostrar.addEventListener("click", mostrarAnimes);
 btnOcultar.addEventListener("click", () => {
   listaAnimes.style.display = "none";
@@ -171,9 +160,7 @@ function mostrarAnimes() {
   });
 }
 
-// ============================================
 // Eliminar Anime
-// ============================================
 function eliminarAnime(id) {
   fetch('/eliminarAnime', { 
     method: 'POST',
@@ -189,9 +176,7 @@ function eliminarAnime(id) {
   });
 }
 
-// ============================================
 // Editar Anime
-// ============================================
 function editarAnime(id) {
   const campos = ['titulo','estado','plataforma','genero','personaje_favorito','soundtrack','calidad_animacion','calificacion'];
   let animeEditado = { id };
