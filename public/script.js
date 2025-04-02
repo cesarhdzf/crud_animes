@@ -3,19 +3,17 @@ document.addEventListener("DOMContentLoaded", function() {
   verificarLogin();
 });
 
-// Función que verifica si hay token y, según ello, oculta o muestra las secciones correspondientes
+// Función que verifica la sesión y muestra u oculta secciones
 function verificarLogin() {
   const token = localStorage.getItem("token");
   const animeContainer = document.getElementById("animeContainer");
   const loginContainer = document.getElementById("loginContainer");
   const registerContainer = document.getElementById("registerContainer");
   const logoutContainer = document.getElementById("logoutContainer");
-  
+
   if (token) {
-    // Si hay token, se muestran las secciones para usuarios autenticados
     animeContainer.style.display = "block";
     logoutContainer.style.display = "block";
-    // Se ocultan las opciones de registro e inicio de sesión
     loginContainer.style.display = "none";
     registerContainer.style.display = "none";
   } else {
@@ -24,18 +22,17 @@ function verificarLogin() {
     loginContainer.style.display = "block";
     registerContainer.style.display = "block";
   }
-  // Verificar si el usuario es administrador
   verificarAdmin();
 }
 
-// Función para verificar si el usuario es admin, decodificando el token
+// Función para decodificar token y verificar si el usuario es admin
 function verificarAdmin() {
   const token = localStorage.getItem("token");
   const adminContainer = document.getElementById("adminContainer");
   if (token) {
     try {
       const decoded = jwt_decode(token);
-      console.log("Token decodificado (admin):", decoded);
+      console.log("Token decodificado:", decoded);
       if (decoded.role && decoded.role === "admin") {
         adminContainer.style.display = "block";
       } else {
@@ -50,7 +47,7 @@ function verificarAdmin() {
   }
 }
 
-// Función para detectar etiquetas HTML en un texto
+// Función para detectar etiquetas HTML
 function tieneEtiquetas(texto) {
   return /<[^>]*>?/gm.test(texto);
 }
@@ -59,17 +56,15 @@ function tieneEtiquetas(texto) {
 // Registro de usuario
 // ============================================
 const formRegistro = document.getElementById("formRegistro");
-formRegistro.addEventListener("submit", e => {
+formRegistro.addEventListener("submit", function(e) {
   e.preventDefault();
   const datos = Object.fromEntries(new FormData(formRegistro));
-  
   for (let key in datos) {
     if (tieneEtiquetas(datos[key])) {
       alert("No se permiten etiquetas HTML.");
       return;
     }
   }
-  
   fetch("/registro", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -87,17 +82,15 @@ formRegistro.addEventListener("submit", e => {
 // Login de usuario
 // ============================================
 const formLogin = document.getElementById("formLogin");
-formLogin.addEventListener("submit", e => {
+formLogin.addEventListener("submit", function(e) {
   e.preventDefault();
   const datos = Object.fromEntries(new FormData(formLogin));
-  
   for (let key in datos) {
     if (tieneEtiquetas(datos[key])) {
       alert("No se permiten etiquetas HTML.");
       return;
     }
   }
-  
   fetch("/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -119,7 +112,7 @@ formLogin.addEventListener("submit", e => {
 // Cerrar sesión
 // ============================================
 const btnCerrarSesion = document.getElementById("btnCerrarSesion");
-btnCerrarSesion.addEventListener("click", () => {
+btnCerrarSesion.addEventListener("click", function() {
   localStorage.removeItem("token");
   alert("Sesión cerrada.");
   verificarLogin();
@@ -129,22 +122,19 @@ btnCerrarSesion.addEventListener("click", () => {
 // Agregar Anime
 // ============================================
 const formAnime = document.getElementById("formAnime");
-formAnime.addEventListener("submit", e => {
+formAnime.addEventListener("submit", function(e) {
   e.preventDefault();
   const formData = Object.fromEntries(new FormData(formAnime));
-  
   if (parseFloat(formData.calificacion) < 0 || parseFloat(formData.calificacion) > 10) {
     alert("La calificación debe estar entre 0 y 10.");
     return;
   }
-  
   for (let key in formData) {
     if (tieneEtiquetas(formData[key])) {
       alert("No se permiten etiquetas HTML");
       return;
     }
   }
-  
   fetch("/agregarAnime", {
     method: "POST",
     headers: {
@@ -154,7 +144,7 @@ formAnime.addEventListener("submit", e => {
     body: JSON.stringify(formData)
   })
   .then(response => {
-    if(response.ok){
+    if (response.ok) {
       alert("Anime agregado correctamente");
       formAnime.reset();
       mostrarAnimes();
@@ -162,9 +152,7 @@ formAnime.addEventListener("submit", e => {
       alert("Error al agregar anime");
     }
   })
-  .catch(err => {
-    alert("Error de red o del servidor: " + err);
-  });
+  .catch(err => alert("Error de red o del servidor: " + err));
 });
 
 // ============================================
@@ -175,7 +163,7 @@ const btnOcultar = document.getElementById("btnOcultar");
 const listaAnimes = document.getElementById("listaAnimes");
 
 btnMostrar.addEventListener("click", mostrarAnimes);
-btnOcultar.addEventListener("click", () => {
+btnOcultar.addEventListener("click", function() {
   listaAnimes.style.display = "none";
 });
 
@@ -190,7 +178,7 @@ function mostrarAnimes() {
     listaAnimes.innerHTML = "";
     animes.forEach(anime => {
       let li = document.createElement("li");
-      li.classList.add("list-group-item");
+      li.className = "list-group-item";
       li.innerHTML = `
         <div>
           ${anime.titulo} (${anime.estado}) - ${anime.plataforma}
@@ -212,7 +200,7 @@ function mostrarAnimes() {
 // Eliminar Anime
 // ============================================
 function eliminarAnime(id) {
-  fetch("/eliminarAnime", { 
+  fetch("/eliminarAnime", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -220,9 +208,9 @@ function eliminarAnime(id) {
     },
     body: JSON.stringify({ id })
   })
-  .then(() => { 
-    alert("Anime eliminado"); 
-    mostrarAnimes(); 
+  .then(() => {
+    alert("Anime eliminado");
+    mostrarAnimes();
   });
 }
 
@@ -232,7 +220,6 @@ function eliminarAnime(id) {
 function editarAnime(id) {
   const campos = ["titulo", "estado", "plataforma", "genero", "personaje_favorito", "soundtrack", "calidad_animacion", "calificacion"];
   let animeEditado = { id };
-
   for (let campo of campos) {
     let valor = prompt(`Nuevo valor para ${campo}:`);
     if (tieneEtiquetas(valor)) {
@@ -241,32 +228,29 @@ function editarAnime(id) {
     }
     animeEditado[campo] = valor;
   }
-
   fetch("/editarAnime", {
-    method: "POST", 
+    method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": "Bearer " + localStorage.getItem("token")
     },
     body: JSON.stringify(animeEditado)
   })
-  .then(() => { 
-    alert("Anime editado"); 
-    mostrarAnimes(); 
+  .then(() => {
+    alert("Anime editado");
+    mostrarAnimes();
   });
 }
 
 // ============================================
 // Lógica de Administración
 // ============================================
-
-// Manejar el botón para ver usuarios
 const btnVerUsuarios = document.getElementById("btnVerUsuarios");
 const btnOcultarUsuarios = document.getElementById("btnOcultarUsuarios");
 const listaUsuarios = document.getElementById("listaUsuarios");
 
 if (btnVerUsuarios) {
-  btnVerUsuarios.addEventListener("click", () => {
+  btnVerUsuarios.addEventListener("click", function() {
     fetch("/admin/usuarios", {
       headers: {
         "Authorization": "Bearer " + localStorage.getItem("token")
@@ -277,7 +261,7 @@ if (btnVerUsuarios) {
       listaUsuarios.innerHTML = "";
       usuarios.forEach(usuario => {
         let li = document.createElement("li");
-        li.classList.add("list-group-item");
+        li.className = "list-group-item";
         li.innerHTML = `
           <div>
             ID: ${usuario.id} - Usuario: ${usuario.username} - Rol: ${usuario.role} - Creado: ${usuario.created_at}
@@ -293,7 +277,7 @@ if (btnVerUsuarios) {
 }
 
 if (btnOcultarUsuarios) {
-  btnOcultarUsuarios.addEventListener("click", () => {
+  btnOcultarUsuarios.addEventListener("click", function() {
     listaUsuarios.style.display = "none";
   });
 }
