@@ -260,16 +260,28 @@ app.get("/admin/usuarios", autenticarToken, esAdmin, async (req, res) => {
 
 // Eliminar un usuario (sólo administradores)
 app.post("/admin/eliminarUsuario", autenticarToken, esAdmin, async (req, res) => {
-  const { id } = req.body;
-  if (!id) return res.status(400).send("Se requiere el ID del usuario");
-  try {
-    await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
-    res.sendStatus(200);
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error al eliminar usuario");
-  }
+    const { id } = req.body;
+    if (!id) return res.status(400).send("Se requiere el ID del usuario");
+    try {
+      // Primero, consulta el usuario a eliminar
+      const result = await pool.query("SELECT role FROM usuarios WHERE id = $1", [id]);
+      if (result.rowCount === 0) {
+        return res.status(404).send("Usuario no encontrado");
+      }
+      const usuarioAEliminar = result.rows[0];
+      // Si el usuario a eliminar es admin, rechaza la operación
+      if (usuarioAEliminar.role === "admin") {
+        return res.status(403).send("No se puede eliminar a otro administrador");
+      }
+      // Si no es admin, procede a eliminar
+      await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error al eliminar usuario");
+    }
 });
+  
 
 // ===================================================
 // Iniciar el servidor
