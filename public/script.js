@@ -208,9 +208,13 @@ function eliminarAnime(id) {
     },
     body: JSON.stringify({ id })
   })
-  .then(() => {
-    alert("Anime eliminado");
-    mostrarAnimes();
+  .then(response => {
+    if (response.ok) {
+      alert("Anime eliminado");
+      mostrarAnimes();
+    } else {
+      alert("Error al eliminar anime");
+    }
   });
 }
 
@@ -220,8 +224,9 @@ function eliminarAnime(id) {
 function editarAnime(id) {
   const campos = ["titulo", "estado", "plataforma", "genero", "personaje_favorito", "soundtrack", "calidad_animacion", "calificacion"];
   let animeEditado = { id };
+  // Mensaje actualizado: "Nuevo [campo]:"
   for (let campo of campos) {
-    let valor = prompt(`Nuevo valor para ${campo}:`);
+    let valor = prompt(`Nuevo ${campo}:`);
     if (tieneEtiquetas(valor)) {
       alert("No se permiten etiquetas HTML");
       return;
@@ -293,10 +298,14 @@ function eliminarUsuario(id) {
       },
       body: JSON.stringify({ id })
     })
-    .then(() => {
-      alert("Usuario eliminado");
-      // Actualiza la lista de usuarios
-      if (btnVerUsuarios) btnVerUsuarios.click();
+    .then(response => {
+      if (response.ok) {
+        alert("Usuario eliminado");
+        // Actualiza la lista de usuarios
+        if (btnVerUsuarios) btnVerUsuarios.click();
+      } else {
+        alert("Error al eliminar usuario");
+      }
     })
     .catch(err => alert("Error al eliminar usuario: " + err));
   }
