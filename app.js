@@ -35,7 +35,7 @@ const pool = new Pool({
 const transporter = nodemailer.createTransport({
   service: "Gmail", // o el servicio que prefieras
   auth: {
-    user: process.env.EMAIL_USER || "cesarthdz1@gmail.com",
+    user: process.env.EMAIL_USER || "cesarthdz1@gmail.com.com",
     pass: process.env.EMAIL_PASS || "Ameelnumero1"
   }
 });
@@ -82,29 +82,31 @@ app.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    // Se espera que el body pueda tener también "solicitarAdmin" (true o false)
+    // Recoge el valor de solicitarAdmin (checkbox, que se enviará como "on" si está seleccionado)
     let { username, password, solicitarAdmin } = req.body;
     try {
-      // Cifrado de la contraseña con hash
       const hash = await bcrypt.hash(password, 10);
       // Inserta el usuario con rol por defecto 'user'
       await pool.query(
         "INSERT INTO usuarios (username, password_hash) VALUES ($1, $2)",
         [username, hash]
       );
-      
-      // Si se ha marcado la opción de solicitar admin, enviar correo de notificación
+      // Si se marcó la casilla de solicitar admin, intenta enviar el correo
       if (solicitarAdmin) {
-        const mailOptions = {
-          from: process.env.EMAIL_USER || "tuCuenta@dominio.com",
-          to: process.env.ADMIN_EMAIL || "admin@dominio.com",
-          subject: "Solicitud de Administración",
-          text: `El usuario ${username} ha solicitado ser administrador.`
-        };
-        await transporter.sendMail(mailOptions);
-        logger.info("Solicitud de admin enviada", { username });
+        try {
+          const mailOptions = {
+            from: process.env.EMAIL_USER || "cesarthdz1@gmail.com",
+            to: process.env.ADMIN_EMAIL || "hernandez.feregrino.cesar.arturo@gmail.com",
+            subject: "Solicitud de Administración",
+            text: `El usuario ${username} ha solicitado ser administrador.`
+          };
+          await transporter.sendMail(mailOptions);
+          logger.info("Solicitud de admin enviada", { username });
+        } catch (mailErr) {
+          logger.error("Error al enviar solicitud de admin", { error: mailErr.message });
+          // Si falla el envío, seguimos sin interrumpir el registro
+        }
       }
-      
       res.sendStatus(201);
     } catch (err) {
       if (err.code === "23505") {
@@ -172,11 +174,11 @@ app.post(
 // Endpoint para solicitar ser administrador
 // ===================================================
 app.post("/solicitarAdmin", autenticarToken, async (req, res) => {
-  const { request } = req.body; // Comentario opcional del usuario
+  const { request } = req.body; // Comentario opcional
   try {
     const mailOptions = {
-      from: process.env.EMAIL_USER || "tuCuenta@dominio.com",
-      to: process.env.ADMIN_EMAIL || "admin@dominio.com",
+      from: process.env.EMAIL_USER || "cesarthdz1@gmail.com",
+      to: process.env.ADMIN_EMAIL || "hernandez.feregrino.cesar.arturo@gmail.com",
       subject: "Solicitud de Administración",
       text: `El usuario ${req.user.username} (ID: ${req.user.id}) solicita ser administrador.
 Comentario: ${request || "Sin comentarios."}`
