@@ -61,12 +61,24 @@ function esAdmin(req, res, next) {
   }
 }
 
+// Middleware global para prevenir inyección SQL en cualquier campo de req.body
+function validarSinSQL(req, res, next) {
+  const forbiddenPattern = /select|drop|insert|update/i;
+  for (const key in req.body) {
+    if (typeof req.body[key] === "string" && forbiddenPattern.test(req.body[key])) {
+      return res.status(400).json({ error: `Texto sospechoso detectado en el campo ${key}` });
+    }
+  }
+  next();
+}
+
 // ===================================================
 // Registro de usuario
 // ===================================================
 app.post(
   "/registro",
   [
+    validarSinSQL,
     body("username")
       .isLength({ min: 3, max: 50 })
       .withMessage("El usuario debe tener entre 3 y 50 caracteres.")
@@ -82,7 +94,7 @@ app.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    // Recoge el valor de solicitarAdmin (checkbox, que se enviará como "on" si está seleccionado)
+    // Recoge el valor de solicitarAdmin (checkbox, que se enviará como "true" si está seleccionado)
     let { username, password, solicitarAdmin } = req.body;
     try {
       const hash = await bcrypt.hash(password, 10);
@@ -104,7 +116,7 @@ app.post(
           logger.info("Solicitud de admin enviada", { username });
         } catch (mailErr) {
           logger.error("Error al enviar solicitud de admin", { error: mailErr.message });
-          // Si falla el envío, seguimos sin interrumpir el registro
+          // No interrumpir el registro si falla el envío
         }
       }
       res.sendStatus(201);
@@ -125,6 +137,7 @@ app.post(
 app.post(
   "/login",
   [
+    validarSinSQL,
     body("username")
       .isLength({ min: 3 })
       .withMessage("El usuario debe tener al menos 3 caracteres.")
@@ -202,13 +215,35 @@ app.post(
   "/agregarAnime",
   autenticarToken,
   [
-    body("titulo").trim().escape().notEmpty().withMessage("Título es requerido."),
-    body("estado").trim().escape().notEmpty().withMessage("Estado es requerido."),
-    body("plataforma").trim().escape().notEmpty().withMessage("Plataforma es requerida."),
-    body("genero").trim().escape().notEmpty().withMessage("Género es requerido."),
-    body("personaje_favorito").trim().escape().notEmpty().withMessage("Personaje Favorito es requerido."),
-    body("soundtrack").trim().escape().notEmpty().withMessage("Soundtrack es requerido."),
-    body("calidad_animacion").trim().escape().notEmpty().withMessage("Calidad de animación es requerida."),
+    validarSinSQL,
+    body("titulo")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Título es requerido."),
+    body("estado")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Estado es requerido."),
+    body("plataforma")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Plataforma es requerida."),
+    body("genero")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Género es requerido."),
+    body("personaje_favorito")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Personaje Favorito es requerido."),
+    body("soundtrack")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Soundtrack es requerido."),
+    body("calidad_animacion")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Calidad de animación es requerida."),
     body("calificacion")
       .isFloat({ min: 0, max: 10 })
       .withMessage("La calificación debe estar entre 0 y 10.")
@@ -268,13 +303,35 @@ app.post(
   "/editarAnime",
   autenticarToken,
   [
-    body("titulo").trim().escape().notEmpty().withMessage("Título es requerido."),
-    body("estado").trim().escape().notEmpty().withMessage("Estado es requerido."),
-    body("plataforma").trim().escape().notEmpty().withMessage("Plataforma es requerida."),
-    body("genero").trim().escape().notEmpty().withMessage("Género es requerido."),
-    body("personaje_favorito").trim().escape().notEmpty().withMessage("Personaje Favorito es requerido."),
-    body("soundtrack").trim().escape().notEmpty().withMessage("Soundtrack es requerido."),
-    body("calidad_animacion").trim().escape().notEmpty().withMessage("Calidad de animación es requerida."),
+    validarSinSQL,
+    body("titulo")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Título es requerido."),
+    body("estado")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Estado es requerido."),
+    body("plataforma")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Plataforma es requerida."),
+    body("genero")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Género es requerido."),
+    body("personaje_favorito")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Personaje Favorito es requerido."),
+    body("soundtrack")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Soundtrack es requerido."),
+    body("calidad_animacion")
+      .trim()
+      .escape()
+      .notEmpty().withMessage("Calidad de animación es requerida."),
     body("calificacion")
       .isFloat({ min: 0, max: 10 })
       .withMessage("La calificación debe estar entre 0 y 10.")
@@ -321,6 +378,7 @@ app.get("/admin/usuarios", autenticarToken, esAdmin, async (req, res) => {
 });
 
 // Eliminar un usuario (sólo administradores)
+// Se elimina primero los animes asociados al usuario y luego el usuario.
 app.post("/admin/eliminarUsuario", autenticarToken, esAdmin, async (req, res) => {
   const { id } = req.body;
   if (!id) {
@@ -338,6 +396,9 @@ app.post("/admin/eliminarUsuario", autenticarToken, esAdmin, async (req, res) =>
       logger.warn("Intento de eliminar a otro administrador", { id, role: usuarioAEliminar.role });
       return res.status(403).send("No se puede eliminar a otro administrador");
     }
+    // Elimina los animes asociados (si existen)
+    await pool.query("DELETE FROM animes WHERE user_id = $1", [id]);
+    // Luego, elimina el usuario
     await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
     logger.info("Usuario eliminado exitosamente", { id, username: usuarioAEliminar.username });
     res.sendStatus(200);
