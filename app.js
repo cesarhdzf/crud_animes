@@ -1,24 +1,13 @@
-require("dotenv").config();
+require("dotenv").config({ path: "varentor.env" });
 const express = require("express");
 const { Pool } = require("pg");
 const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
-const morgan = require('morgan');
-const logger = require('./logger');
-const nodemailer = require('nodemailer');
-
-// Configurar el transporte
-const transporter = nodemailer.createTransport({
-  service: 'Gmail',
-  auth: {
-    user: 'cesarthdz1@gmail.com',
-    pass: 'Ameelnumero1'
-  }
-});
-
-
+const morgan = require("morgan");
+const logger = require("./logger");
+const nodemailer = require("nodemailer");
 
 const app = express();
 
@@ -28,7 +17,7 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Configurar morgan para loguear peticiones HTTP usando winston
-app.use(morgan('combined', {
+app.use(morgan("combined", {
   stream: {
     write: (message) => logger.info(message.trim())
   }
@@ -40,6 +29,15 @@ const SECRET = process.env.JWT_SECRET || "clave-super-secreta";
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false }
+});
+
+// Configurar nodemailer
+const transporter = nodemailer.createTransport({
+  service: "Gmail", // o el servicio que prefieras
+  auth: {
+    user: process.env.EMAIL_USER || "cesarthdz1@gmail.com",
+    pass: process.env.EMAIL_PASS || "Ameelnumero1"
+  }
 });
 
 // Middleware para autenticar mediante JWT
@@ -63,8 +61,6 @@ function esAdmin(req, res, next) {
   }
 }
 
-
-
 // ===================================================
 // Registro de usuario
 // ===================================================
@@ -86,47 +82,40 @@ app.post(
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
-    let { username, password } = req.body;
+    // Se espera que el body pueda tener también "solicitarAdmin" (true o false)
+    let { username, password, solicitarAdmin } = req.body;
     try {
       // Cifrado de la contraseña con hash
       const hash = await bcrypt.hash(password, 10);
-      // NOTA: El rol se asigna por defecto en la base de datos (role DEFAULT 'user')
+      // Inserta el usuario con rol por defecto 'user'
       await pool.query(
         "INSERT INTO usuarios (username, password_hash) VALUES ($1, $2)",
         [username, hash]
       );
+      
+      // Si se ha marcado la opción de solicitar admin, enviar correo de notificación
+      if (solicitarAdmin) {
+        const mailOptions = {
+          from: process.env.EMAIL_USER || "tuCuenta@dominio.com",
+          to: process.env.ADMIN_EMAIL || "admin@dominio.com",
+          subject: "Solicitud de Administración",
+          text: `El usuario ${username} ha solicitado ser administrador.`
+        };
+        await transporter.sendMail(mailOptions);
+        logger.info("Solicitud de admin enviada", { username });
+      }
+      
       res.sendStatus(201);
     } catch (err) {
-      // Error por usuario duplicado (violación UNIQUE)
       if (err.code === "23505") {
         return res.status(400).send("El nombre de usuario ya está en uso.");
       }
+      logger.error("Error en registro", { error: err.message });
       console.error(err);
       res.status(500).send("Error en registro.");
     }
   }
 );
-
-// ===================================================
-// Solicitud admin
-// ===================================================
-app.post("/solicitarAdmin", autenticarToken, async (req, res) => {
-  const { request } = req.body;
-  try {
-    const mailOptions = {
-      from: 'cesarthdz1@gmail.com',
-      to: 'hernandez.feregrino.cesar.arturo@gmail.com',
-      subject: 'Solicitud de Administración',
-      text: `El usuario ${req.user.username} (ID: ${req.user.id}) solicita ser administrador. Comentario: ${request || 'Sin comentarios.'}`
-    };
-    await transporter.sendMail(mailOptions);
-    res.send("Solicitud enviada.");
-  } catch (err) {
-    console.error(err);
-    res.status(500).send("Error al enviar la solicitud.");
-  }
-});
-
 
 // ===================================================
 // Login de usuario
@@ -169,7 +158,6 @@ app.post(
         SECRET,
         { expiresIn: "2h" }
       );
-      // Aquí se puede registrar el inicio de sesión exitoso
       logger.info("Inicio de sesión exitoso", { username: user.username, id: user.id });
       res.json({ token });
     } catch (err) {
@@ -179,6 +167,29 @@ app.post(
     }
   }
 );
+
+// ===================================================
+// Endpoint para solicitar ser administrador
+// ===================================================
+app.post("/solicitarAdmin", autenticarToken, async (req, res) => {
+  const { request } = req.body; // Comentario opcional del usuario
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL_USER || "tuCuenta@dominio.com",
+      to: process.env.ADMIN_EMAIL || "admin@dominio.com",
+      subject: "Solicitud de Administración",
+      text: `El usuario ${req.user.username} (ID: ${req.user.id}) solicita ser administrador.
+Comentario: ${request || "Sin comentarios."}`
+    };
+    await transporter.sendMail(mailOptions);
+    logger.info("Solicitud de admin enviada", { username: req.user.username });
+    res.send("Solicitud enviada.");
+  } catch (err) {
+    logger.error("Error al enviar solicitud de admin", { error: err.message });
+    console.error(err);
+    res.status(500).send("Error al enviar la solicitud.");
+  }
+});
 
 // ===================================================
 // CRUD de animes (rutas protegidas)
@@ -207,7 +218,6 @@ app.post(
     }
     let { titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
     try {
-      // Inserta el anime asociándolo al usuario autenticado (req.user.id)
       await pool.query(
         `INSERT INTO animes (titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion, user_id)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -215,6 +225,7 @@ app.post(
       );
       res.sendStatus(200);
     } catch (err) {
+      logger.error("Error al agregar anime", { error: err.message });
       console.error(err);
       res.status(500).send("Error en base de datos");
     }
@@ -227,6 +238,7 @@ app.get("/obtenerAnimes", autenticarToken, async (req, res) => {
     const { rows } = await pool.query("SELECT * FROM animes WHERE user_id = $1", [req.user.id]);
     res.json(rows);
   } catch (err) {
+    logger.error("Error al obtener animes", { error: err.message });
     console.error(err);
     res.status(500).send("Error al obtener animes");
   }
@@ -236,7 +248,6 @@ app.get("/obtenerAnimes", autenticarToken, async (req, res) => {
 app.post("/eliminarAnime", autenticarToken, async (req, res) => {
   const { id } = req.body;
   try {
-    // Verifica que el anime pertenezca al usuario
     const result = await pool.query("SELECT * FROM animes WHERE id = $1 AND user_id = $2", [id, req.user.id]);
     if (result.rowCount === 0) {
       return res.status(403).send("No autorizado para eliminar este anime");
@@ -244,6 +255,7 @@ app.post("/eliminarAnime", autenticarToken, async (req, res) => {
     await pool.query("DELETE FROM animes WHERE id = $1", [id]);
     res.sendStatus(200);
   } catch (err) {
+    logger.error("Error al eliminar anime", { error: err.message });
     console.error(err);
     res.status(500).send("Error al eliminar");
   }
@@ -272,7 +284,6 @@ app.post(
     }
     let { id, titulo, estado, plataforma, genero, personaje_favorito, soundtrack, calidad_animacion, calificacion } = req.body;
     try {
-      // Verifica que el anime pertenezca al usuario
       const result = await pool.query("SELECT * FROM animes WHERE id = $1 AND user_id = $2", [id, req.user.id]);
       if (result.rowCount === 0) {
         return res.status(403).send("No autorizado para editar este anime");
@@ -284,6 +295,7 @@ app.post(
       );
       res.sendStatus(200);
     } catch (err) {
+      logger.error("Error al editar anime", { error: err.message });
       console.error(err);
       res.status(500).send("Error al editar anime");
     }
@@ -300,6 +312,7 @@ app.get("/admin/usuarios", autenticarToken, esAdmin, async (req, res) => {
     const result = await pool.query("SELECT id, username, created_at, role FROM usuarios");
     res.json(result.rows);
   } catch (err) {
+    logger.error("Error al obtener usuarios", { error: err.message });
     console.error(err);
     res.status(500).send("Error al obtener usuarios");
   }
@@ -313,19 +326,16 @@ app.post("/admin/eliminarUsuario", autenticarToken, esAdmin, async (req, res) =>
     return res.status(400).send("Se requiere el ID del usuario");
   }
   try {
-    // Consulta el usuario a eliminar, incluyendo el username para mayor detalle
     const result = await pool.query("SELECT role, username FROM usuarios WHERE id = $1", [id]);
     if (result.rowCount === 0) {
       logger.warn("Intento de eliminar usuario inexistente", { id });
       return res.status(404).send("Usuario no encontrado");
     }
     const usuarioAEliminar = result.rows[0];
-    // Evita eliminar a otro administrador
     if (usuarioAEliminar.role === "admin") {
       logger.warn("Intento de eliminar a otro administrador", { id, role: usuarioAEliminar.role });
       return res.status(403).send("No se puede eliminar a otro administrador");
     }
-    // Procede a eliminar el usuario
     await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
     logger.info("Usuario eliminado exitosamente", { id, username: usuarioAEliminar.username });
     res.sendStatus(200);
