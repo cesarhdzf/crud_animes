@@ -35,8 +35,8 @@ const pool = new Pool({
 const transporter = nodemailer.createTransport({
   service: "Gmail", // o el servicio que prefieras
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: process.env.EMAIL_USER || "cesarthdz1@gmail.com.com",
+    pass: process.env.EMAIL_PASS || "Ameelnumero1"
   }
 });
 
@@ -107,8 +107,8 @@ app.post(
       if (solicitarAdmin) {
         try {
           const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: process.env.ADMIN_EMAIL,
+            from: process.env.EMAIL_USER || "cesarthdz1@gmail.com",
+            to: process.env.ADMIN_EMAIL || "hernandez.feregrino.cesar.arturo@gmail.com",
             subject: "Solicitud de Administración",
             text: `El usuario ${username} ha solicitado ser administrador.`
           };
@@ -190,8 +190,8 @@ app.post("/solicitarAdmin", autenticarToken, async (req, res) => {
   const { request } = req.body; // Comentario opcional
   try {
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: process.env.ADMIN_EMAIL,
+      from: process.env.EMAIL_USER || "cesarthdz1@gmail.com",
+      to: process.env.ADMIN_EMAIL || "hernandez.feregrino.cesar.arturo@gmail.com",
       subject: "Solicitud de Administración",
       text: `El usuario ${req.user.username} (ID: ${req.user.id}) solicita ser administrador.
 Comentario: ${request || "Sin comentarios."}`
