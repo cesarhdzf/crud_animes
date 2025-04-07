@@ -16,6 +16,20 @@ body {
   line-height: 1.6;
 }
 
+/* Estilos para los placeholders, para que sean legibles en fondo oscuro */
+::-webkit-input-placeholder {
+  color: #ccc !important;
+}
+::-moz-placeholder {
+  color: #ccc !important;
+}
+:-ms-input-placeholder {
+  color: #ccc !important;
+}
+::placeholder {
+  color: #ccc !important;
+}
+
 /* Ocultar la sección de animes por defecto */
 #animeContainer {
   display: none; /* Se muestra sólo si hay token */
@@ -91,8 +105,7 @@ button {
   padding: 15px;
   margin-bottom: 10px;
   border-radius: 8px;
-  /* FONDO PASTEL: elige un tono gris-lila, por ejemplo: */
-  background-color: #2c2c3c; /* Un gris oscuro con un matiz liláceo */
+  background-color: #2c2c3c; /* Gris oscuro con matiz liláceo */
   border: 1px solid #444;
   color: #e0e0e0;
   box-shadow: 0px 2px 4px rgba(255, 255, 255, 0.1);

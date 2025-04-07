@@ -5,6 +5,20 @@ const bodyParser = require("body-parser");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { body, validationResult } = require("express-validator");
+const morgan = require('morgan');
+const logger = require('./logger');
+const nodemailer = require('nodemailer');
+
+// Configurar el transporte
+const transporter = nodemailer.createTransport({
+  service: 'Gmail',
+  auth: {
+    user: 'cesarthdz1@gmail.com',
+    pass: 'Ameelnumero1'
+  }
+});
+
+
 
 const app = express();
 
@@ -12,6 +26,13 @@ const app = express();
 app.use(express.static("public"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// Configurar morgan para loguear peticiones HTTP usando winston
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => logger.info(message.trim())
+  }
+}));
 
 const SECRET = process.env.JWT_SECRET || "clave-super-secreta";
 
@@ -41,6 +62,8 @@ function esAdmin(req, res, next) {
     res.status(403).send("No autorizado: acceso solo para administradores");
   }
 }
+
+
 
 // ===================================================
 // Registro de usuario
@@ -85,6 +108,27 @@ app.post(
 );
 
 // ===================================================
+// Solicitud admin
+// ===================================================
+app.post("/solicitarAdmin", autenticarToken, async (req, res) => {
+  const { request } = req.body;
+  try {
+    const mailOptions = {
+      from: 'cesarthdz1@gmail.com',
+      to: 'hernandez.feregrino.cesar.arturo@gmail.com',
+      subject: 'Solicitud de Administración',
+      text: `El usuario ${req.user.username} (ID: ${req.user.id}) solicita ser administrador. Comentario: ${request || 'Sin comentarios.'}`
+    };
+    await transporter.sendMail(mailOptions);
+    res.send("Solicitud enviada.");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Error al enviar la solicitud.");
+  }
+});
+
+
+// ===================================================
 // Login de usuario
 // ===================================================
 app.post(
@@ -125,8 +169,11 @@ app.post(
         SECRET,
         { expiresIn: "2h" }
       );
+      // Aquí se puede registrar el inicio de sesión exitoso
+      logger.info("Inicio de sesión exitoso", { username: user.username, id: user.id });
       res.json({ token });
     } catch (err) {
+      logger.error("Error en login", { error: err.message });
       console.error(err);
       res.status(500).send("Error en login.");
     }
@@ -260,28 +307,34 @@ app.get("/admin/usuarios", autenticarToken, esAdmin, async (req, res) => {
 
 // Eliminar un usuario (sólo administradores)
 app.post("/admin/eliminarUsuario", autenticarToken, esAdmin, async (req, res) => {
-    const { id } = req.body;
-    if (!id) return res.status(400).send("Se requiere el ID del usuario");
-    try {
-      // Primero, consulta el usuario a eliminar
-      const result = await pool.query("SELECT role FROM usuarios WHERE id = $1", [id]);
-      if (result.rowCount === 0) {
-        return res.status(404).send("Usuario no encontrado");
-      }
-      const usuarioAEliminar = result.rows[0];
-      // Si el usuario a eliminar es admin, rechaza la operación
-      if (usuarioAEliminar.role === "admin") {
-        return res.status(403).send("No se puede eliminar a otro administrador");
-      }
-      // Si no es admin, procede a eliminar
-      await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
-      res.sendStatus(200);
-    } catch (err) {
-      console.error(err);
-      res.status(500).send("Error al eliminar usuario");
+  const { id } = req.body;
+  if (!id) {
+    logger.warn("Intento de eliminar usuario sin ID", { body: req.body });
+    return res.status(400).send("Se requiere el ID del usuario");
+  }
+  try {
+    // Consulta el usuario a eliminar, incluyendo el username para mayor detalle
+    const result = await pool.query("SELECT role, username FROM usuarios WHERE id = $1", [id]);
+    if (result.rowCount === 0) {
+      logger.warn("Intento de eliminar usuario inexistente", { id });
+      return res.status(404).send("Usuario no encontrado");
     }
+    const usuarioAEliminar = result.rows[0];
+    // Evita eliminar a otro administrador
+    if (usuarioAEliminar.role === "admin") {
+      logger.warn("Intento de eliminar a otro administrador", { id, role: usuarioAEliminar.role });
+      return res.status(403).send("No se puede eliminar a otro administrador");
+    }
+    // Procede a eliminar el usuario
+    await pool.query("DELETE FROM usuarios WHERE id = $1", [id]);
+    logger.info("Usuario eliminado exitosamente", { id, username: usuarioAEliminar.username });
+    res.sendStatus(200);
+  } catch (err) {
+    logger.error("Error al eliminar usuario", { error: err.message, id });
+    console.error(err);
+    res.status(500).send("Error al eliminar usuario");
+  }
 });
-  
 
 // ===================================================
 // Iniciar el servidor
