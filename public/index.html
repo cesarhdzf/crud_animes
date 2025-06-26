@@ -1,111 +1,98 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>CRUD Animes + Registro, Login y Admin</title>
-  <!-- Bootstrap (importado primero) -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Tu CSS personalizado -->
-  <link rel="stylesheet" type="text/css" href="style.css">
-  <script src="https://cdn.jsdelivr.net/npm/jsrsasign@11.1.0/lib/jsrsasign.min.js"></script>
-</head>
+    <meta charset="UTF-8">
+    <title>CRUD Animes + Registro, Login y Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    </head>
 <body>
-  <!-- Contenedor de registro -->
-  <div id="registerContainer" class="container mb-4">
-    <h3>Registrarse</h3>
-    <form id="formRegistro" onsubmit="return false;">
-      <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2" minlength="3" maxlength="50">
-      <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2" minlength="6">
-      <label>
-        <input type="checkbox" name="solicitarAdmin" value="true"> Solicito ser administrador
-      </label>      
-      <button type="submit" class="btn btn-success w-100">Registrarse</button>
-    </form>
-  </div>
 
-  <!-- Contenedor de login -->
-  <div id="loginContainer" class="container mb-4">
-    <h3>Iniciar Sesión</h3>
-    <form id="formLogin" onsubmit="return false;">
-      <input type="text" name="username" placeholder="Usuario" required class="form-control mb-2">
-      <input type="password" name="password" placeholder="Contraseña" required class="form-control mb-2">
-      <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
-    </form>
-  </div>
+<main class="container py-4">
 
-  <!-- Contenedor para cerrar sesión -->
-  <div id="logoutContainer" class="container mb-4" style="display:none;">
-    <button id="btnCerrarSesion" class="btn btn-danger w-100">Cerrar Sesión</button>
-  </div>
+    <h1 class="mb-4 text-center">Plataforma de Animes y Documentos</h1>
 
-  <!-- Contenedor de animes (para usuarios autenticados) -->
-  <div id="animeContainer" class="container" style="display:none;">
-    <h2>Registrar Anime</h2>
-    <form id="formAnime" onsubmit="return false;">
-      <input type="text" name="titulo" placeholder="Título" required class="form-control mb-2">
-      <select name="estado" required class="form-select mb-2">
-        <option value="">Estado</option>
-        <option>Visto</option>
-        <option>No Visto</option>
-        <option>Por Ver</option>
-      </select>
-      <select name="plataforma" required class="form-select mb-2">
-        <option>Netflix</option>
-        <option>Crunchyroll</option>
-        <option>Prime Video</option>
-        <option>Otro</option>
-      </select>
-      <input type="text" name="genero" placeholder="Género" required class="form-control mb-2">
-      <input type="text" name="personaje_favorito" placeholder="Personaje Favorito" required class="form-control mb-2">
-      <label>Soundtrack:</label>
-      <select name="soundtrack" required class="form-select mb-2">
-        <option>Excelente</option>
-        <option>Buenísimo</option>
-        <option>No tan bueno</option>
-        <option>Meh</option>
-      </select>
-      <label>Calidad de Animación:</label>
-      <select name="calidad_animacion" required class="form-select mb-2">
-        <option>Excelente</option>
-        <option>Buenísimo</option>
-        <option>No tan bueno</option>
-        <option>Meh</option>
-      </select>
-      <input type="number" step="0.1" name="calificacion" placeholder="Calificación Final (0-10)" required class="form-control mb-3" min="0" max="10">
-      <button type="submit" class="btn btn-success w-100">Agregar Anime</button>
-    </form>
-    <button id="btnMostrar" class="btn btn-primary w-100 mt-3">Mostrar Animes</button>
-    <button id="btnOcultar" class="btn btn-secondary w-100 mt-2">Ocultar Animes</button>
-    <ul id="listaAnimes" class="list-group mt-3" style="display:none;"></ul>
-  </div>
+    <section id="authSection" class="mb-5">
+        <div id="registerContainer">
+            <h3>Registrarse</h3>
+            <form id="formRegistro">
+                <label for="reg-username" class="form-label">Usuario:</label>
+                <input id="reg-username" type="text" name="username" placeholder="Usuario" required class="form-control mb-2" minlength="3" maxlength="50">
+                
+                <label for="reg-password" class="form-label">Contraseña:</label>
+                <input id="reg-password" type="password" name="password" placeholder="Contraseña" required class="form-control mb-2" minlength="6">
+                
+                <div class="form-check mb-2">
+                    <input id="solicitarAdmin" type="checkbox" name="solicitarAdmin" value="true" class="form-check-input">
+                    <label for="solicitarAdmin" class="form-check-label">Solicito ser administrador</label>
+                </div>
+                <button type="submit" class="btn btn-success w-100">Registrarse</button>
+            </form>
+        </div>
 
-  <!-- Contenedor de administración (para admin) -->
-  <div id="adminContainer" class="container" style="display:none;">
-    <h2>Panel de Administración</h2>
-    <button id="btnVerUsuarios" class="btn btn-primary w-100 mt-3">Ver Usuarios</button>
-    <button id="btnOcultarUsuarios" class="btn btn-secondary w-100 mt-2">Ocultar Usuarios</button>
-    <ul id="listaUsuarios" class="list-group mt-3" style="display:none;"></ul>
-  </div>
+        <div id="loginContainer">
+            <h3 class="mt-4">Iniciar Sesión</h3>
+            <form id="formLogin">
+                <label for="login-username" class="form-label">Usuario:</label>
+                <input id="login-username" type="text" name="username" placeholder="Usuario" required class="form-control mb-2">
+                
+                <label for="login-password" class="form-label">Contraseña:</label>
+                <input id="login-password" type="password" name="password" placeholder="Contraseña" required class="form-control mb-2">
+                
+                <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+            </form>
+        </div>
 
-  <div id="documentosContainer" class="container" style="display:none;">
-    <h2>Documentos Oficiales</h2>
-    <p>Descarga los documentos y verifica su integridad para asegurar que son auténticos.</p>
+        <div id="logoutContainer" style="display:none;">
+            <button id="btnCerrarSesion" class="btn btn-danger w-100 mt-4">Cerrar Sesión</button>
+        </div>
+    </section>
 
-    <form id="formUpload" class="mb-4" style="display:none;">
-        <h4>Subir Nuevo Documento (Solo Admin)</h4>
-        <input type="file" name="documento" required class="form-control mb-2">
-        <button type="submit" class="btn btn-info w-100" style="background-color: #39CCCC !important;">Subir y Firmar Documento</button>
-    </form>
+    <section id="animeContainer" style="display:none;">
+        <h2>Registrar Anime</h2>
+        <form id="formAnime">
+            <input type="text" name="titulo" placeholder="Título" required class="form-control mb-2">
+            <select name="estado" required class="form-select mb-2">
+                <option value="">Estado</option>
+                <option>Visto</option>
+                <option>No Visto</option>
+                <option>Por Ver</option>
+            </select>
+            <input type="number" step="0.1" name="calificacion" placeholder="Calificación Final (0-10)" required class="form-control mb-3" min="0" max="10">
+            <button type="submit" class="btn btn-success w-100">Agregar Anime</button>
+        </form>
+        <button id="btnMostrar" class="btn btn-primary w-100 mt-3">Mostrar Animes</button>
+        <button id="btnOcultar" class="btn btn-secondary w-100 mt-2">Ocultar Animes</button>
+        <ul id="listaAnimes" class="list-group mt-3" style="display:none;"></ul>
+    </section>
 
-    <ul id="listaDocumentos" class="list-group mt-3"></ul>
-  </div>
+    <section id="adminContainer" class="mt-5" style="display:none;">
+        <h2>Panel de Administración</h2>
+        <button id="btnVerUsuarios" class="btn btn-primary w-100 mt-3">Ver Usuarios</button>
+        <button id="btnOcultarUsuarios" class="btn btn-secondary w-100 mt-2">Ocultar Usuarios</button>
+        <ul id="listaUsuarios" class="list-group mt-3" style="display:none;"></ul>
+    </section>
 
-  <!-- Scripts -->
-  <!-- Carga jwt-decode -->
-  <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
-  <!-- Bootstrap Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Tu script JS -->
-  <script src="script.js"></script>
+    <section id="documentosContainer" class="mt-5" style="display:none;">
+        <h2>Documentos Oficiales</h2>
+        <p>Descarga los documentos y verifica su integridad para asegurar que son auténticos.</p>
+
+        <form id="formUpload" class="mb-4" style="display:none;">
+            <h4>Subir Nuevo Documento (Solo Admin)</h4>
+            <label for="file-upload" class="form-label">Seleccionar Documento:</label>
+            <input id="file-upload" type="file" name="documento" required class="form-control mb-2">
+            <button type="submit" class="btn btn-info w-100" style="background-color: #39CCCC !important;">Subir y Firmar Documento</button>
+        </form>
+
+        <ul id="listaDocumentos" class="list-group mt-3"></ul>
+    </section>
+
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/jsrsasign@11.1.0/lib/jsrsasign.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="script.js"></script>
+
 </body>
 </html>
