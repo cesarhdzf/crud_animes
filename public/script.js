@@ -16,6 +16,10 @@ function verificarLogin() {
     logoutContainer.style.display = "block";
     loginContainer.style.display = "none";
     registerContainer.style.display = "none";
+    // Hace visible el contenedor de documentos para usuarios logueados.
+    document.getElementById("documentosContainer").style.display = "block";
+    // Llama a la función para que busque y muestre la lista de documentos.
+    cargarDocumentos();
   } else {
     animeContainer.style.display = "none";
     logoutContainer.style.display = "none";
@@ -35,6 +39,8 @@ function verificarAdmin() {
       console.log("Token decodificado:", decoded);
       if (decoded.role && decoded.role === "admin") {
         adminContainer.style.display = "block";
+        // Hace visible el formulario de subida, pero solo para los administradores.
+        document.getElementById("formUpload").style.display = "block";
       } else {
         adminContainer.style.display = "none";
       }
@@ -309,4 +315,120 @@ function eliminarUsuario(id) {
     })
     .catch(err => alert("Error al eliminar usuario: " + err));
   }
+}
+
+// ============================================
+// Lógica para Documentos Firmados con DSA
+// ============================================
+
+// Pide al backend la lista de documentos y los muestra en la página.
+function cargarDocumentos() {
+    const listaDocumentos = document.getElementById("listaDocumentos");
+    fetch("/documentos")
+        .then(res => res.json())
+        .then(documentos => {
+            listaDocumentos.innerHTML = "";
+            documentos.forEach(doc => {
+                let li = document.createElement("li");
+                li.className = "list-group-item d-flex justify-content-between align-items-center";
+                li.innerHTML = `
+                    <span>${doc.nombre_archivo}</span>
+                    <div>
+                        <a href="/documentos/${doc.id}/descargar" class="btn btn-primary btn-sm">Descargar</a>
+                        <button class="btn btn-success btn-sm mx-2" onclick="verificarDocumento(${doc.id})">Verificar Integridad</button>
+                        <span id="status-${doc.id}" style="width: 110px; display: inline-block;"></span>
+                    </div>
+                `;
+                listaDocumentos.appendChild(li);
+            });
+        });
+}
+
+// Orquesta todo el proceso de verificación en el navegador del cliente.
+async function verificarDocumento(docId) {
+    const statusSpan = document.getElementById(`status-${docId}`);
+    statusSpan.textContent = "Verificando...";
+    try {
+        // 1. Pide al servidor la clave pública para poder verificar.
+        const pubKeyResponse = await fetch('/clave-publica');
+        const pubKeyPEM = await pubKeyResponse.text();
+        const publicKey = await importarClavePublica(pubKeyPEM);
+
+        // 2. Pide al servidor la firma digital asociada al archivo.
+        const firmaResponse = await fetch(`/documentos/${docId}/firma`);
+        const { firma } = await firmaResponse.json();
+        const signature = base64ToArrayBuffer(firma);
+
+        // 3. Descarga el contenido del archivo como un ArrayBuffer (una secuencia de bytes).
+        const archivoResponse = await fetch(`/documentos/${docId}/descargar`);
+        const archivoData = await archivoResponse.arrayBuffer();
+
+        // 4. El corazón de la verificación. Usa la Web Crypto API (nativa del navegador).
+        const esValido = await window.crypto.subtle.verify(
+            { name: "DSA", hash: "SHA-256" },
+            publicKey,
+            signature,
+            archivoData
+        );
+
+        if (esValido) {
+            statusSpan.textContent = "✅ ¡Verificado!";
+            statusSpan.style.color = "lightgreen";
+        } else {
+            statusSpan.textContent = "❌ ¡Firma Inválida!";
+            statusSpan.style.color = "red";
+        }
+    } catch (error) {
+        console.error("Error durante la verificación:", error);
+        statusSpan.textContent = "Error";
+    }
+}
+
+// Función auxiliar para convertir la clave pública (texto PEM) a un objeto CryptoKey.
+async function importarClavePublica(pem) {
+    const pemHeader = "-----BEGIN PUBLIC KEY-----";
+    const pemFooter = "-----END PUBLIC KEY-----";
+    const pemContents = pem.substring(pemHeader.length, pem.length - pemFooter.length - 1).replace(/\s/g, '');
+    const binaryDer = base64ToArrayBuffer(pemContents);
+    return await window.crypto.subtle.importKey(
+        "spki", binaryDer,
+        { name: "DSA", hash: "SHA-256" },
+        true, ["verify"]
+    );
+}
+
+// Función auxiliar para decodificar la firma (texto Base64) a los bytes crudos (ArrayBuffer).
+function base64ToArrayBuffer(base64) {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+// Añade el evento de "submit" al formulario de subida de archivos del admin.
+const formUpload = document.getElementById("formUpload");
+if (formUpload) {
+    formUpload.addEventListener("submit", function(e) {
+        e.preventDefault();
+        const formData = new FormData(formUpload);
+        const token = localStorage.getItem("token");
+        fetch("/admin/upload-documento", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token },
+            body: formData
+        })
+        .then(res => {
+            if (!res.ok) throw new Error("Error al subir el archivo.");
+            return res.json();
+        })
+        .then(data => {
+            alert(data.message);
+            formUpload.reset();
+            cargarDocumentos(); // Recarga la lista de documentos después de subir uno nuevo.
+        })
+        .catch(err => alert(err.message));
+    });
 }

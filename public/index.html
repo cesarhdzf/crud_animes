@@ -86,6 +86,19 @@
     <ul id="listaUsuarios" class="list-group mt-3" style="display:none;"></ul>
   </div>
 
+  <div id="documentosContainer" class="container" style="display:none;">
+    <h2>Documentos Oficiales</h2>
+    <p>Descarga los documentos y verifica su integridad para asegurar que son auténticos.</p>
+
+    <form id="formUpload" class="mb-4" style="display:none;">
+        <h4>Subir Nuevo Documento (Solo Admin)</h4>
+        <input type="file" name="documento" required class="form-control mb-2">
+        <button type="submit" class="btn btn-info w-100" style="background-color: #39CCCC !important;">Subir y Firmar Documento</button>
+    </form>
+
+    <ul id="listaDocumentos" class="list-group mt-3"></ul>
+  </div>
+
   <!-- Scripts -->
   <!-- Carga jwt-decode -->
   <script src="https://cdn.jsdelivr.net/npm/jwt-decode/build/jwt-decode.min.js"></script>

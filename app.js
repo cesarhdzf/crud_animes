@@ -9,6 +9,16 @@ const morgan = require("morgan");
 const logger = require("./logger");
 const nodemailer = require("nodemailer");
 
+// Para manejar el sistema de archivos (leer las claves y los archivos subidos).
+const fs = require("fs");
+// Para usar las funciones de firma y verificación criptográfica.
+const crypto = require("crypto");
+// Para procesar los archivos que se suben desde el formulario HTML.
+const multer = require("multer");
+
+// Configura multer para que guarde los archivos subidos en la carpeta 'uploads/'.
+const upload = multer({ dest: "uploads/" });
+
 const app = express();
 
 // Servir archivos estáticos desde la carpeta "public"
@@ -407,6 +417,83 @@ app.post("/admin/eliminarUsuario", autenticarToken, esAdmin, async (req, res) =>
     console.error(err);
     res.status(500).send("Error al eliminar usuario");
   }
+});
+
+// ===================================================
+// Endpoints para Firma y Verificación de Documentos
+// ===================================================
+
+// Endpoint de admin para subir un archivo, firmarlo con la clave privada y guardar sus datos en la BD.
+app.post("/admin/upload-documento", autenticarToken, esAdmin, upload.single('documento'), async (req, res) => {
+    if (!req.file) {
+        return res.status(400).send("No se subió ningún archivo.");
+    }
+    try {
+        // Lee los bytes crudos del archivo que se acaba de subir al servidor.
+        const contenidoArchivo = fs.readFileSync(req.file.path);
+
+        // Carga la clave privada desde el archivo. Esta clave NUNCA debe salir del servidor.
+        const privateKey = fs.readFileSync('private_key.pem', 'utf8');
+
+        // Inicia el proceso de firma. DSA firma un HASH del contenido, no el contenido entero.
+        const signer = crypto.createSign('sha256');
+        signer.update(contenidoArchivo);
+        signer.end();
+
+        // Firma el hash del archivo con la clave privada. 
+        // Se convierte la firma a formato Base64 para poder guardarla fácilmente como texto en la base de datos.
+        const firma = signer.sign(privateKey, 'base64');
+
+        const nombreOriginal = req.file.originalname;
+        const rutaArchivo = req.file.path;
+        await pool.query(
+            "INSERT INTO documentos (nombre_archivo, ruta_archivo, firma_digital) VALUES ($1, $2, $3)",
+            [nombreOriginal, rutaArchivo, firma]
+        );
+        res.status(201).send({ message: "Archivo subido y firmado correctamente." });
+    } catch (err) {
+        logger.error("Error al firmar documento", { error: err.message });
+        res.status(500).send("Error en el servidor al firmar el archivo.");
+    }
+});
+
+// Endpoint PÚBLICO para listar todos los documentos disponibles
+app.get("/documentos", async (req, res) => {
+    try {
+        const { rows } = await pool.query("SELECT id, nombre_archivo FROM documentos ORDER BY creado_en DESC");
+        res.json(rows);
+    } catch (err) {
+        res.status(500).send("Error al obtener la lista de documentos.");
+    }
+});
+
+// Endpoint PÚBLICO para descargar un archivo específico
+app.get("/documentos/:id/descargar", async (req, res) => {
+    try {
+        const { rows } = await pool.query("SELECT ruta_archivo, nombre_archivo FROM documentos WHERE id = $1", [req.params.id]);
+        if (rows.length === 0) return res.sendStatus(404);
+        res.download(rows[0].ruta_archivo, rows[0].nombre_archivo);
+    } catch (err) {
+        res.status(500).send("Error al descargar el archivo.");
+    }
+});
+
+// Endpoint público que provee la firma digital de un archivo específico.
+// Es necesario para que el frontend pueda obtenerla y usarla en la verificación.
+app.get("/documentos/:id/firma", async (req, res) => {
+    try {
+        const { rows } = await pool.query("SELECT firma_digital FROM documentos WHERE id = $1", [req.params.id]);
+        if (rows.length === 0) return res.sendStatus(404);
+        res.json({ firma: rows[0].firma_digital });
+    } catch (err) {
+        res.status(500).send("Error al obtener la firma.");
+    }
+});
+
+// Endpoint público que provee la clave pública. 
+// Es seguro compartirla, ya que matemáticamente solo sirve para verificar, no para firmar.
+app.get("/clave-publica", (req, res) => {
+    res.sendFile(__dirname + '/public_key.pem');
 });
 
 // ===================================================
