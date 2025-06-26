@@ -344,33 +344,71 @@ function cargarDocumentos() {
         });
 }
 
+// --- FUNCIONES AUXILIARES NECESARIAS PARA JSRSASSIGN ---
+
+// Convierte un ArrayBuffer (como los datos de un archivo) a una cadena hexadecimal.
+function arrayBufferToHex(buffer) {
+    return Array.prototype.map.call(new Uint8Array(buffer), x => ('00' + x.toString(16)).slice(-2)).join('');
+}
+
+// Convierte una cadena Base64 a una cadena hexadecimal.
+function base64ToHex(str) {
+    const raw = window.atob(str);
+    let result = '';
+    for (let i = 0; i < raw.length; i++) {
+        const hex = raw.charCodeAt(i).toString(16);
+        result += (hex.length === 2 ? hex : '0' + hex);
+    }
+    return result;
+}
+
+
+// --- TU FUNCIÓN PRINCIPAL, AHORA USANDO JSRSASSIGN ---
+
 // Orquesta todo el proceso de verificación en el navegador del cliente.
 async function verificarDocumento(docId) {
     const statusSpan = document.getElementById(`status-${docId}`);
     statusSpan.textContent = "Verificando...";
     try {
-        // 1. Pide al servidor la clave pública para poder verificar.
+        // 1. Pide al servidor la clave pública. No cambia nada aquí.
         const pubKeyResponse = await fetch('/clave-publica');
         const pubKeyPEM = await pubKeyResponse.text();
-        const publicKey = await importarClavePublica(pubKeyPEM);
+        
+        // YA NO ES NECESARIO: La llamada a importarClavePublica se elimina,
+        // jsrsasign trabaja directamente con el texto PEM.
+        // const publicKey = await importarClavePublica(pubKeyPEM);
 
-        // 2. Pide al servidor la firma digital asociada al archivo.
+        // 2. Pide al servidor la firma digital.
         const firmaResponse = await fetch(`/documentos/${docId}/firma`);
-        const { firma } = await firmaResponse.json();
-        const signature = base64ToArrayBuffer(firma);
+        const { firma } = await firmaResponse.json(); // firma está en Base64
 
-        // 3. Descarga el contenido del archivo como un ArrayBuffer (una secuencia de bytes).
+        // CAMBIO: Convierte la firma de Base64 a Hexadecimal para jsrsasign.
+        const signatureHex = base64ToHex(firma);
+
+        // 3. Descarga el contenido del archivo como un ArrayBuffer. No cambia nada aquí.
         const archivoResponse = await fetch(`/documentos/${docId}/descargar`);
         const archivoData = await archivoResponse.arrayBuffer();
 
-        // 4. El corazón de la verificación. Usa la Web Crypto API (nativa del navegador).
-        const esValido = await window.crypto.subtle.verify(
-            { name: "DSA", hash: "SHA-256" },
-            publicKey,
-            signature,
-            archivoData
-        );
+        // CAMBIO: Convierte los datos del archivo a Hexadecimal.
+        const archivoDataHex = arrayBufferToHex(archivoData);
 
+        // 4. El corazón de la verificación, AHORA con jsrsasign.
+        // Se reemplaza window.crypto.subtle.verify
+        
+        // a) Crea un nuevo objeto de firma, especificando el algoritmo.
+        //    Como tu hash es SHA-256 y el algoritmo es DSA, el nombre es "SHA256withDSA".
+        const sig = new KJUR.crypto.Signature({ "alg": "SHA256withDSA" });
+
+        // b) Inicializa el objeto con la clave pública en formato PEM.
+        sig.init(pubKeyPEM);
+
+        // c) Carga los datos del documento (en hexadecimal) para verificar.
+        sig.updateHex(archivoDataHex);
+
+        // d) Verifica la firma (en hexadecimal) contra los datos cargados.
+        const esValido = sig.verify(signatureHex);
+
+        // 5. El resto del código para mostrar el estado no cambia.
         if (esValido) {
             statusSpan.textContent = "✅ ¡Verificado!";
             statusSpan.style.color = "lightgreen";
@@ -382,19 +420,6 @@ async function verificarDocumento(docId) {
         console.error("Error durante la verificación:", error);
         statusSpan.textContent = "Error";
     }
-}
-
-// Función auxiliar para convertir la clave pública (texto PEM) a un objeto CryptoKey.
-async function importarClavePublica(pem) {
-    const pemHeader = "-----BEGIN PUBLIC KEY-----";
-    const pemFooter = "-----END PUBLIC KEY-----";
-    const pemContents = pem.substring(pemHeader.length, pem.length - pemFooter.length - 1).replace(/\s/g, '');
-    const binaryDer = base64ToArrayBuffer(pemContents);
-    return await window.crypto.subtle.importKey(
-        "spki", binaryDer,
-        { name: "DSA", hash: "SHA-256" },
-        true, ["verify"]
-    );
 }
 
 // Función auxiliar para decodificar la firma (texto Base64) a los bytes crudos (ArrayBuffer).
