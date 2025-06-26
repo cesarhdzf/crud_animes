@@ -406,30 +406,25 @@ app.get("/documentos", async (req, res) => {
     }
 });
 
-// <-- RUTA CORREGIDA Y MEJORADA
-// Endpoint PÚBLICO para descargar un archivo específico
+// Endpoint PÚBLICO para descargar un archivo específico 
 app.get("/documentos/:id/descargar", async (req, res) => {
     try {
         const { rows } = await pool.query("SELECT ruta_archivo, nombre_archivo FROM documentos WHERE id = $1", [req.params.id]);
-        
+
         if (rows.length === 0) {
-            // Si no se encuentra en la BD, devuelve 404.
             return res.status(404).send("Documento no encontrado en la base de datos.");
         }
 
         const infoDocumento = rows[0];
-        
-        // Construye la ruta ABSOLUTA al archivo usando path.join y __dirname
+
+        // Construye la ruta ABSOLUTA al archivo
         const rutaAbsoluta = path.join(__dirname, infoDocumento.ruta_archivo);
 
-        // Usa res.download con la ruta absoluta. Express se encargará del resto.
-        // El segundo argumento (nombre_archivo) es el nombre que verá el usuario al descargar.
+        // Envía el archivo para su descarga
         res.download(rutaAbsoluta, infoDocumento.nombre_archivo, (err) => {
             if (err) {
-                // Si res.download no puede encontrar el archivo en la ruta absoluta,
-                // este callback se ejecutará.
-                console.error("Error: Archivo no encontrado en el servidor en la ruta:", rutaAbsoluta);
-                res.status(404).send("Archivo no encontrado en el servidor.");
+                console.error("Error al intentar enviar el archivo:", err);
+                res.status(404).send("Archivo no encontrado en el disco del servidor.");
             }
         });
 
