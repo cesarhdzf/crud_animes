@@ -406,7 +406,7 @@ app.get("/documentos", async (req, res) => {
     }
 });
 
-// Endpoint PÚBLICO para descargar un archivo específico 
+// Endpoint PÚBLICO para descargar un archivo específico
 app.get("/documentos/:id/descargar", async (req, res) => {
     try {
         const { rows } = await pool.query("SELECT ruta_archivo, nombre_archivo FROM documentos WHERE id = $1", [req.params.id]);
