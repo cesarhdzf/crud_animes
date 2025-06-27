@@ -66,11 +66,15 @@ function autenticarToken(req, res, next) {
 
 // Middleware para acceso de administradores
 function esAdmin(req, res, next) {
-  if (req.user && req.user.role === "admin") {
-    next();
-  } else {
-    res.status(403).send("No autorizado: acceso solo para administradores");
-  }
+  // LÍNEA DE DEPURACIÓN: Nos dirá qué rol está viendo el servidor.
+  console.log("Middleware esAdmin - Rol del usuario recibido:", req.user ? req.user.role : "Usuario no definido");
+
+  if (req.user && req.user.role === "admin") {
+    next(); // Si el rol es "admin", permite continuar.
+  } else {
+    // Si el rol no es "admin" o no hay usuario, deniega el acceso.
+    res.status(403).send("Acceso denegado: Se requiere rol de administrador.");
+  }
 }
 
 // Middleware global para prevenir inyección SQL en cualquier campo de req.body
