@@ -445,6 +445,44 @@ app.get("/documentos/:id/firma", async (req, res) => {
     }
 });
 
+// Endpoint de admin para eliminar un documento.
+// Es POST para seguir la convención, pero podría ser DELETE.
+app.post("/admin/eliminar-documento", autenticarToken, esAdmin, async (req, res) => {
+    // Obtenemos el ID del documento que el frontend nos envía en el cuerpo de la petición.
+    const { id } = req.body;
+    if (!id) {
+        return res.status(400).send("Se requiere el ID del documento.");
+    }
+
+    try {
+        // 1. Buscamos el documento en la base de datos para obtener su ruta de archivo.
+        const result = await pool.query("SELECT ruta_archivo FROM documentos WHERE id = $1", [id]);
+        if (result.rowCount === 0) {
+            return res.status(404).send("Documento no encontrado.");
+        }
+        const rutaArchivo = result.rows[0].ruta_archivo;
+
+        // 2. Borramos el archivo físico del servidor usando el módulo 'fs'.
+        // fs.unlink se encarga de eliminar un archivo de una ruta específica.
+        fs.unlink(rutaArchivo, (err) => {
+            if (err) {
+                // Si hay un error (ej. el archivo ya no existe), lo registramos pero continuamos
+                // para al menos borrar el registro de la base de datos.
+                logger.error(`No se pudo borrar el archivo físico: ${rutaArchivo}`, { error: err });
+            }
+        });
+
+        // 3. Borramos el registro del documento de la tabla 'documentos'.
+        await pool.query("DELETE FROM documentos WHERE id = $1", [id]);
+
+        res.status(200).send({ message: "Documento eliminado correctamente." });
+
+    } catch (err) {
+        logger.error("Error al eliminar documento", { error: err.message, id });
+        res.status(500).send("Error en el servidor al eliminar el documento.");
+    }
+});
+
 // Endpoint público que provee la clave pública. 
 app.get("/clave-publica", (req, res) => {
     res.sendFile(path.join(__dirname, 'public_key.pem'));

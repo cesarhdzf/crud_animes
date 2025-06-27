@@ -31,26 +31,41 @@ function verificarLogin() {
 
 // Función para decodificar token y verificar si el usuario es admin
 function verificarAdmin() {
-  const token = localStorage.getItem("token");
-  const adminContainer = document.getElementById("adminContainer");
-  if (token) {
-    try {
-      const decoded = jwt_decode(token);
-      console.log("Token decodificado:", decoded);
-      if (decoded.role && decoded.role === "admin") {
-        adminContainer.style.display = "block";
-        // Hace visible el formulario de subida, pero solo para los administradores.
-        document.getElementById("formUpload").style.display = "block";
-      } else {
-        adminContainer.style.display = "none";
-      }
-    } catch (e) {
-      console.error("Error al decodificar token:", e);
-      adminContainer.style.display = "none";
-    }
-  } else {
+    const token = localStorage.getItem("token");
+    const adminContainer = document.getElementById("adminContainer");
+    const formUpload = document.getElementById("formUpload"); // Obtenemos también el formulario de subida
+
+    // Oculta los elementos de admin por defecto antes de verificar.
     adminContainer.style.display = "none";
-  }
+    if(formUpload) formUpload.style.display = "none";
+
+    if (token) {
+        try {
+            const decoded = jwt_decode(token);
+            console.log("Token decodificado:", decoded);
+
+            // Verifica si el rol en el token es 'admin'.
+            if (decoded.role && decoded.role === "admin") {
+                // Si es admin, muestra tanto el panel como el formulario de subida.
+                adminContainer.style.display = "block";
+                if(formUpload) formUpload.style.display = "block";
+            }
+            // Si no es admin, ya estaban ocultos, así que no se hace nada.
+
+        } catch (e) {
+            // Este bloque se activa si el token es inválido O si ha expirado.
+            console.error("Error al decodificar token:", e.message);
+
+            // Comprobamos si el error es por expiración.
+            if (e.name === 'InvalidTokenError' && e.message.includes("expired")) {
+                alert("Tu sesión de administrador ha expirado. Por favor, inicia sesión de nuevo.");
+                // Forzamos el cierre de sesión para limpiar el token inválido.
+                localStorage.removeItem("token");
+                verificarLogin(); // Llama a verificarLogin para actualizar toda la vista.
+            }
+        }
+    }
+    // Si no hay token, los elementos de admin permanecen ocultos.
 }
 
 // Función para detectar etiquetas HTML
@@ -324,24 +339,81 @@ function eliminarUsuario(id) {
 // Pide al backend la lista de documentos y los muestra en la página.
 function cargarDocumentos() {
     const listaDocumentos = document.getElementById("listaDocumentos");
+    
     fetch("/documentos")
         .then(res => res.json())
         .then(documentos => {
             listaDocumentos.innerHTML = "";
+
+            // 1. Verificamos si el usuario es admin decodificando el token guardado.
+            let esAdmin = false;
+            const token = localStorage.getItem("token");
+            if (token) {
+                try {
+                    // Si el token es válido y el rol es 'admin', esAdmin será true.
+                    esAdmin = jwt_decode(token).role === 'admin';
+                } catch (e) {
+                    // Si el token está expirado o es inválido, no es admin.
+                    console.error("Token inválido al cargar documentos: ", e.message);
+                    esAdmin = false;
+                }
+            }
+
+            // 2. Recorremos cada documento para crear su elemento en la lista.
             documentos.forEach(doc => {
                 let li = document.createElement("li");
                 li.className = "list-group-item d-flex justify-content-between align-items-center";
+                
+                // Creamos una variable para los botones.
+                let botonesHTML = `
+                    <a href="/documentos/${doc.id}/descargar" class="btn btn-primary btn-sm">Descargar</a>
+                    <button class="btn btn-success btn-sm mx-2" onclick="verificarDocumento(${doc.id})">Verificar</button>
+                `;
+
+                // 3. Si el usuario es admin, añadimos el botón de Eliminar a la variable.
+                if (esAdmin) {
+                    // La función eliminarDocumento() es la que pegaste en el paso anterior.
+                    botonesHTML += `<button class="btn btn-danger btn-sm" onclick="eliminarDocumento(${doc.id})">Eliminar</button>`;
+                }
+
+                // 4. Construimos el HTML final del elemento de la lista.
                 li.innerHTML = `
                     <span>${doc.nombre_archivo}</span>
                     <div>
-                        <a href="/documentos/${doc.id}/descargar" class="btn btn-primary btn-sm">Descargar</a>
-                        <button class="btn btn-success btn-sm mx-2" onclick="verificarDocumento(${doc.id})">Verificar Integridad</button>
-                        <span id="status-${doc.id}" style="width: 110px; display: inline-block;"></span>
+                        ${botonesHTML}
+                        <span id="status-${doc.id}" style="width: 110px; display: inline-block; margin-left:10px;"></span>
                     </div>
                 `;
                 listaDocumentos.appendChild(li);
             });
         });
+}
+
+// Se ejecuta cuando un admin hace clic en el botón "Eliminar".
+function eliminarDocumento(docId) {
+    // Pide confirmación para evitar borrados accidentales.
+    if (!confirm("¿Estás seguro de que quieres eliminar este documento? Esta acción no se puede deshacer.")) {
+        return;
+    }
+
+    const token = localStorage.getItem("token");
+    fetch("/admin/eliminar-documento", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ id: docId }) // Envía el ID del documento a borrar.
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("No se pudo eliminar el documento.");
+        return res.json();
+    })
+    .then(data => {
+        alert(data.message);
+        cargarDocumentos(); // Recarga la lista para que el documento borrado desaparezca.
+    })
+    .catch(err => alert(err.message));
 }
 
 // --- FUNCIONES AUXILIARES NECESARIAS PARA JSRSASSIGN ---
